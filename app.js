@@ -837,7 +837,7 @@ async function updateBlogStatusCount() {
 // 각 API 키 검증 함수
 async function validateOpenAIKey(userId) {
     try {
-        const response = await fetch(`https://www.dokdolove.com/api/openai/${userId}`);
+        const response = await fetch(`https://dokdolove.com/api/openai/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("OpenAI API 키 유효성 확인 오류:", error);
