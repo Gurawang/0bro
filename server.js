@@ -25,6 +25,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // 모든 OPTIONS 요청에 대해 CORS 허용
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -82,17 +83,25 @@ app.get('/api/googleimage/:userId', async (req, res) => {
         const cx = doc.data()?.googleImageCx;
 
         if (!apiKey || !cx) {
+            console.log('Google Image API 키 또는 CX가 설정되지 않았습니다.');
             return res.status(400).json({ error: 'API 키 또는 CX가 설정되지 않았습니다.' });
         }
 
         const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-            params: { key: apiKey, cx, q: 'test' }
+            params: {
+                key: apiKey,
+                cx: cx,
+                q: 'test'
+            }
         });
+
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        handleError(res, error, 'Google Image');
+        console.error("Google Image API 호출 오류:", error.response ? error.response.data : error.message);
+        res.status(500).json({ ok: false, error: 'Google Image API 호출 오류' });
     }
 });
+
 
 // Cloudinary API 프록시
 app.get('/api/cloudinary/:userId', async (req, res) => {

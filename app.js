@@ -837,7 +837,7 @@ async function updateBlogStatusCount() {
 // 각 API 키 검증 함수
 async function validateOpenAIKey(userId) {
     try {
-        const response = await fetch(`https://www.dokdolove.com/api/openai/${userId}`);
+        const response = await fetch(`http://localhost:5000/api/openai/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("OpenAI API 키 유효성 확인 오류:", error);
@@ -848,7 +848,7 @@ async function validateOpenAIKey(userId) {
 
 async function validateGeminiKey(userId) {
     try {
-        const response = await fetch(`https://www.dokdolove.com/api/gemini/${userId}`);
+        const response = await fetch(`http://localhost:5000/api/gemini/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Gemini API 키 유효성 확인 오류:", error);
@@ -868,7 +868,7 @@ async function validateGoogleImageSettings(userId) {
             return false;
         }
 
-        const response = await fetch(`https://www.dokdolove.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=test`);
+        const response = await fetch(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=test`);
         return response.ok;
     } catch (error) {
         console.error("Google Image API 키 유효성 확인 오류:", error);
@@ -879,7 +879,7 @@ async function validateGoogleImageSettings(userId) {
 
 async function validateCloudinarySettings(userId) {
     try {
-        const response = await fetch(`https://www.dokdolove.com/api/cloudinary/${userId}`);
+        const response = await fetch(`http://localhost:5000/api/cloudinary/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Cloudinary 설정 유효성 확인 오류:", error);
@@ -889,7 +889,7 @@ async function validateCloudinarySettings(userId) {
 
 async function validatePixabayKey(userId) {
     try {
-        const response = await fetch(`https://www.dokdolove.com/api/pixabay/${userId}`);
+        const response = await fetch(`http://localhost:5000/api/pixabay/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Pixabay API 키 유효성 확인 오류:", error);
@@ -899,7 +899,7 @@ async function validatePixabayKey(userId) {
 
 async function validateCoupangKey(userId) {
     try {
-        const response = await fetch(`https://www.dokdolove.com/api/coupang/${userId}`);
+        const response = await fetch(`http://localhost:5000/api/coupang/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Coupang Partners API 키 유효성 확인 오류:", error);
@@ -1012,20 +1012,18 @@ async function saveGoogleImageSettings() {
     const statusIndicator = document.getElementById("googleImageConnectionStatus");
 
     try {
-        const userId = auth.currentUser.uid;
+        const isValid = await validateGoogleImageSettings(auth.currentUser.uid);
 
-        // Firestore에 API 키 및 CX 저장
+        const userId = auth.currentUser.uid;
         await db.collection("settings").doc(userId).set(
             { googleImageApiKey: apiKey, googleImageCx: cx },
             { merge: true }
         );
 
-        // 유효성 검사 및 연결 상태 업데이트
-        const isValid = await validateGoogleImageSettings(userId);
         statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
         statusIndicator.style.color = isValid ? "green" : "red";
 
-        alert("Google Image API 키와 CX가 저장되었습니다.");
+        alert("Google Image API 키와 검색 엔진 ID (CX)가 저장되었습니다.");
     } catch (error) {
         console.error("API 키 저장 오류:", error);
         alert("API 키 저장 중 오류가 발생했습니다.");
