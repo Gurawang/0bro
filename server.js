@@ -2,6 +2,10 @@ const express = require('express');
 const axios = require('axios');
 const admin = require('firebase-admin');
 const cors = require('cors');
+const corsOptions = {
+    origin: 'https://www.dokdolove.com',
+    optionsSuccessStatus: 200
+};
 require('dotenv').config();
 
 const app = express();
@@ -18,7 +22,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // OpenAI API 프록시
