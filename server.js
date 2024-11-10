@@ -27,6 +27,11 @@ const db = admin.firestore();
 app.use(cors(corsOptions));
 app.use(express.json());
 
+app.use((req, res, next) => {
+    console.log(`요청된 경로: ${req.path}`);
+    next();
+});
+
 // OpenAI API 프록시
 app.get('/api/openai/:userId', async (req, res) => {
     const userId = req.params.userId;
@@ -152,6 +157,6 @@ app.get('/api/coupang/:userId', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`프록시 서버가 ${process.env.DOMAIN}:${PORT}에서 실행 중입니다.`);
 });
