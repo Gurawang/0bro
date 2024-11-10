@@ -27,12 +27,6 @@ const db = admin.firestore();
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Helper function to handle error response
-function handleError(res, error, apiName) {
-    console.error(`${apiName} API 호출 오류:`, error.response ? error.response.data : error.message);
-    res.status(500).json({ ok: false, error: `${apiName} API 호출 오류` });
-}
-
 // OpenAI API 프록시
 app.get('/api/openai/:userId', async (req, res) => {
     const userId = req.params.userId;
@@ -49,7 +43,8 @@ app.get('/api/openai/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        handleError(res, error, 'OpenAI');
+        console.error("OpenAI API 호출 오류:", error.message);
+        res.status(500).json({ ok: false, error: 'OpenAI API 호출 오류' });
     }
 });
 
