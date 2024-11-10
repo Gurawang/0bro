@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const corsOptions = {
-    origin: 'https://dokdolove.com',
+    origin: 'https://www.dokdolove.com',
     optionsSuccessStatus: 200
 };
 
