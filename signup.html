@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - 영브로</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="signup-container">
+        <div class="logo">
+            <img src="logo.png" alt="영브로 로고" />
+        </div>
+        <h2>회원가입을 환영합니다.</h2>
+
+        <form class="signup-form" id="signupForm">
+            <input type="text" id="username" placeholder="아이디" required>
+            <input type="password" id="password" placeholder="비밀번호" required>
+            <input type="password" id="confirmPassword" placeholder="비밀번호 확인" required>
+            <input type="text" id="nickname" placeholder="이름/닉네임" required>
+            <input type="email" id="email" placeholder="이메일" required>
+            <button type="submit">회원가입</button>
+        </form>
+
+        <p class="login-link">이미 회원이신가요? <a href="/login" onclick="navigateTo(event, '/login')">로그인</a></p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

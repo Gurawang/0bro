@@ -1,0 +1,37 @@
+<!-- 설정 페이지의 기본 HTML 구조 -->
+<div class="settings-container">
+    <!-- 왼쪽 사이드바 -->
+    <div class="settings-sidebar">
+        <ul>
+            <li><a href="#" onclick="showContent('status')">현재 상태</a></li>
+            <li>AI 모델
+                <ul>
+                    <li><a href="#" onclick="showContent('openai')">OpenAI</a></li>
+                    <li><a href="#" onclick="showContent('gemini')">Gemini</a></li>
+                </ul>
+            </li>
+            <li>블로그
+                <ul>
+                    <li><a href="#" onclick="showContent('wordpress')">워드프레스</a></li>
+                    <li><a href="#" onclick="showContent('google')">구글</a></li>
+                </ul>
+            </li>
+            <li>이미지 검색
+                <ul>
+                    <li><a href="#" onclick="showContent('googleImage')">구글이미지</a></li>
+                    <li><a href="#" onclick="showContent('cloudinary')">Cloudinary</a></li>
+                    <li><a href="#" onclick="showContent('pixabay')">픽사베이</a></li>
+                </ul>
+            </li>
+            <li>기타
+                <ul>
+                    <li><a href="#" onclick="showContent('coupang')">쿠팡 파트너스</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <!-- 오른쪽 설정 콘텐츠 -->
+    <div class="settings-content" id="settingsContent">
+    </div>
+</div>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - 영브로</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <img src="logo.png" alt="영브로 로고" />
+        </div>
+        <h2>영브로에 오신 것을 환영합니다.</h2>
+
+        <!-- login.html -->
+        <form id="loginForm" class="login-form">
+            <input type="text" id="loginEmailOrUsername" placeholder="아이디 또는 이메일" required>
+            <input type="password" id="loginPassword" placeholder="비밀번호" required>
+            <button type="submit">로그인</button>
+        </form>
+
+        <p class="signup-link">아직 회원이 아니신가요? <a href="/signup" onclick="navigateTo(event, '/signup')">회원가입</a></p>
+
+        <div class="divider"></div>
+
+        <button class="kakao-button">카카오로 시작하기</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

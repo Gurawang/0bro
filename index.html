@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Header</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <!-- 상단 헤더 (PC) -->
+    <header class="header">
+        <nav class="nav-links">
+            <div class="logo">
+                <a href="/" onclick="navigateTo(event, '/')">
+                    <img src="logo.png" alt="홈 아이콘" class="home-icon">
+                </a>
+            </div>
+            <a href="/work" onclick="requireLogin(event, '/work')">작업</a>
+            <a href="/docs" onclick="requireLogin(event, '/docs')">문서</a>
+            <a href="/settings" onclick="requireLogin(event, '/settings')">설정</a>
+            <a href="/guide" onclick="navigateTo(event, '/guide')">가이드</a>
+            <a href="/payment" onclick="requireLogin(event, '/payment')">결제</a>
+        </nav>
+        <div class="user-actions"></div>
+    </header>
+
+    <!-- 모바일 헤더 -->
+    <div class="mobile-header">
+        <div class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="user-actions"></div>
+    </div>
+
+    <!-- 메뉴 외부 영역 (overlay) -->
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- 모바일 메뉴 -->
+    <nav class="mobile-menu" id="mobileMenu">
+    </nav>
+
+    <!-- 콘텐츠 영역 -->
+    <main id="content" class="main-content">
+        <h1>Welcome to 0Bro</h1>
+        <p>프로그램 또는 회사 소개 페이지!</p>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <p>회사 정보 | 주소 | 연락처 | 법적 고지</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
