@@ -190,5 +190,5 @@ app.get('/api/coupang/:userId', async (req, res) => {
 
 
 app.listen(PORT, () => {
-    console.log(`프록시 서버가 http://localhost:${PORT}에서 실행 중입니다.`);
+    console.log(`프록시 서버가 ${process.env.DOMAIN}:${PORT}에서 실행 중입니다.`);
 });

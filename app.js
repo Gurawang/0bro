@@ -837,7 +837,7 @@ async function updateBlogStatusCount() {
 // 각 API 키 검증 함수
 async function validateOpenAIKey(userId) {
     try {
-        const response = await fetch(`http://localhost:5000/api/openai/${userId}`);
+        const response = await fetch(`${process.env.DOMAIN}/api/openai/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("OpenAI API 키 유효성 확인 오류:", error);
@@ -848,7 +848,7 @@ async function validateOpenAIKey(userId) {
 
 async function validateGeminiKey(userId) {
     try {
-        const response = await fetch(`http://localhost:5000/api/gemini/${userId}`);
+        const response = await fetch(`${process.env.DOMAIN}/api/gemini/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Gemini API 키 유효성 확인 오류:", error);
@@ -868,7 +868,7 @@ async function validateGoogleImageSettings(userId) {
             return false;
         }
 
-        const response = await fetch(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=test`);
+        const response = await fetch(`${process.env.DOMAIN}/customsearch/v1?key=${apiKey}&cx=${cx}&q=test`);
         return response.ok;
     } catch (error) {
         console.error("Google Image API 키 유효성 확인 오류:", error);
@@ -879,7 +879,7 @@ async function validateGoogleImageSettings(userId) {
 
 async function validateCloudinarySettings(userId) {
     try {
-        const response = await fetch(`http://localhost:5000/api/cloudinary/${userId}`);
+        const response = await fetch(`${process.env.DOMAIN}/api/cloudinary/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Cloudinary 설정 유효성 확인 오류:", error);
@@ -889,7 +889,7 @@ async function validateCloudinarySettings(userId) {
 
 async function validatePixabayKey(userId) {
     try {
-        const response = await fetch(`http://localhost:5000/api/pixabay/${userId}`);
+        const response = await fetch(`${process.env.DOMAIN}/api/pixabay/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Pixabay API 키 유효성 확인 오류:", error);
@@ -899,7 +899,7 @@ async function validatePixabayKey(userId) {
 
 async function validateCoupangKey(userId) {
     try {
-        const response = await fetch(`http://localhost:5000/api/coupang/${userId}`);
+        const response = await fetch(`${process.env.DOMAIN}/api/coupang/${userId}`);
         return response.ok;
     } catch (error) {
         console.error("Coupang Partners API 키 유효성 확인 오류:", error);
