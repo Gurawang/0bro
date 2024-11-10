@@ -8,9 +8,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const corsOptions = {
-    origin: 'https://www.dokdolove.com',
+    origin: ['https://www.dokdolove.com', 'http://localhost:5000'],
     optionsSuccessStatus: 200
 };
+
 
 // Firebase Admin 초기화
 admin.initializeApp({
