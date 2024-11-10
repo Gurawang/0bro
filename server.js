@@ -27,6 +27,12 @@ const db = admin.firestore();
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Helper function to handle error response
+function handleError(res, error, apiName) {
+    console.error(`${apiName} API 호출 오류:`, error.response ? error.response.data : error.message);
+    res.status(500).json({ ok: false, error: `${apiName} API 호출 오류` });
+}
+
 // OpenAI API 프록시
 app.get('/api/openai/:userId', async (req, res) => {
     const userId = req.params.userId;
@@ -35,7 +41,6 @@ app.get('/api/openai/:userId', async (req, res) => {
         const apiKey = doc.data()?.openAIKey;
 
         if (!apiKey) {
-            console.log('OpenAI API 키가 설정되지 않았습니다.');
             return res.status(400).json({ error: 'API 키가 설정되지 않았습니다.' });
         }
 
@@ -44,8 +49,7 @@ app.get('/api/openai/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("OpenAI API 호출 오류:", error.response ? error.response.data : error.message);
-        res.status(500).json({ ok: false, error: 'OpenAI API 호출 오류' });
+        handleError(res, error, 'OpenAI');
     }
 });
 
@@ -57,7 +61,6 @@ app.get('/api/gemini/:userId', async (req, res) => {
         const apiKey = doc.data()?.geminiKey;
 
         if (!apiKey) {
-            console.log('Gemini API 키가 설정되지 않았습니다.');
             return res.status(400).json({ error: 'API 키가 설정되지 않았습니다.' });
         }
 
@@ -66,8 +69,7 @@ app.get('/api/gemini/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("Gemini API 호출 오류:", error.response ? error.response.data : error.message);
-        res.status(500).json({ ok: false, error: 'Gemini API 호출 오류' });
+        handleError(res, error, 'Gemini');
     }
 });
 
@@ -80,7 +82,6 @@ app.get('/api/googleimage/:userId', async (req, res) => {
         const cx = doc.data()?.googleImageCx;
 
         if (!apiKey || !cx) {
-            console.log('Google Image API 키 또는 CX가 설정되지 않았습니다.');
             return res.status(400).json({ error: 'API 키 또는 CX가 설정되지 않았습니다.' });
         }
 
@@ -89,8 +90,7 @@ app.get('/api/googleimage/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("Google Image API 호출 오류:", error.response ? error.response.data : error.message);
-        res.status(500).json({ ok: false, error: 'Google Image API 호출 오류' });
+        handleError(res, error, 'Google Image');
     }
 });
 
@@ -102,7 +102,6 @@ app.get('/api/cloudinary/:userId', async (req, res) => {
         const { cloudinaryCloudName, cloudinaryApiKey, cloudinaryApiSecret } = doc.data() || {};
 
         if (!cloudinaryCloudName || !cloudinaryApiKey || !cloudinaryApiSecret) {
-            console.log('Cloudinary 설정이 부족합니다.');
             return res.status(400).json({ error: 'Cloudinary 설정이 부족합니다.' });
         }
 
@@ -112,8 +111,7 @@ app.get('/api/cloudinary/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("Cloudinary API 호출 오류:", error.message);
-        res.status(500).json({ ok: false, error: 'Cloudinary API 호출 오류' });
+        handleError(res, error, 'Cloudinary');
     }
 });
 
@@ -125,15 +123,13 @@ app.get('/api/pixabay/:userId', async (req, res) => {
         const apiKey = doc.data()?.pixabayApiKey;
 
         if (!apiKey) {
-            console.log('Pixabay API 키가 설정되지 않았습니다.');
             return res.status(400).json({ error: 'API 키가 설정되지 않았습니다.' });
         }
 
         const response = await axios.get(`https://pixabay.com/api/?key=${apiKey}&q=test`);
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("Pixabay API 호출 오류:", error.message);
-        res.status(500).json({ ok: false, error: 'Pixabay API 호출 오류' });
+        handleError(res, error, 'Pixabay');
     }
 });
 
@@ -145,7 +141,6 @@ app.get('/api/coupang/:userId', async (req, res) => {
         const { coupangApiKey, coupangApiSecret } = doc.data() || {};
 
         if (!coupangApiKey || !coupangApiSecret) {
-            console.log('Coupang API 키가 설정되지 않았습니다.');
             return res.status(400).json({ error: '쿠팡 API 키가 설정되지 않았습니다.' });
         }
 
@@ -158,8 +153,7 @@ app.get('/api/coupang/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("Coupang API 호출 오류:", error.message);
-        res.status(500).json({ ok: false, error: 'Coupang API 호출 오류' });
+        handleError(res, error, 'Coupang');
     }
 });
 
