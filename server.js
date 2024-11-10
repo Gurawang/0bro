@@ -2,15 +2,17 @@ const express = require('express');
 const axios = require('axios');
 const admin = require('firebase-admin');
 const cors = require('cors');
-const corsOptions = {
-    origin: 'https://www.dokdolove.com',
-    optionsSuccessStatus: 200
-};
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const corsOptions = {
+    origin: 'https://www.dokdolove.com',
+    optionsSuccessStatus: 200
+};
+
+// Firebase Admin 초기화
 admin.initializeApp({
     credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
@@ -23,7 +25,6 @@ admin.initializeApp({
 const db = admin.firestore();
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // 추가된 CORS 설정
 app.use(express.json());
 
 // OpenAI API 프록시
@@ -43,11 +44,10 @@ app.get('/api/openai/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("OpenAI API 호출 오류:", error.message);
+        console.error("OpenAI API 호출 오류:", error.response ? error.response.data : error.message);
         res.status(500).json({ ok: false, error: 'OpenAI API 호출 오류' });
     }
 });
-
 
 // Gemini API 프록시
 app.get('/api/gemini/:userId', async (req, res) => {
@@ -61,7 +61,6 @@ app.get('/api/gemini/:userId', async (req, res) => {
             return res.status(400).json({ error: 'API 키가 설정되지 않았습니다.' });
         }
 
-        // Gemini 엔드포인트 예시로 대체
         const response = await axios.get('https://api.gemini.com/v1/pubticker/btcusd', {
             headers: { 'Authorization': `Bearer ${apiKey}` }
         });
@@ -78,28 +77,6 @@ app.get('/api/googleimage/:userId', async (req, res) => {
     try {
         const doc = await db.collection('settings').doc(userId).get();
         const apiKey = doc.data()?.googleImageApiKey;
-        const cx = doc.data()?.googleCx; // Custom Search 엔진 ID
-
-        if (!apiKey || !cx) {
-            console.log('Google Image API 키 또는 cx가 설정되지 않았습니다.');
-            return res.status(400).json({ error: 'API 키 또는 cx가 설정되지 않았습니다.' });
-        }
-
-        const response = await axios.get(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=test`);
-        res.json({ ok: true, data: response.data });
-    } catch (error) {
-        console.error("Google Image API 호출 오류:", error.response ? error.response.data : error.message);
-        res.status(500).json({ ok: false, error: 'Google Image API 호출 오류' });
-    }
-});
-
-
-// Google Image API 프록시
-app.get('/api/googleimage/:userId', async (req, res) => {
-    const userId = req.params.userId;
-    try {
-        const doc = await db.collection('settings').doc(userId).get();
-        const apiKey = doc.data()?.googleImageApiKey;
         const cx = doc.data()?.googleImageCx;
 
         if (!apiKey || !cx) {
@@ -108,21 +85,14 @@ app.get('/api/googleimage/:userId', async (req, res) => {
         }
 
         const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-            params: {
-                key: apiKey,
-                cx: cx,
-                q: 'test'
-            }
+            params: { key: apiKey, cx, q: 'test' }
         });
-
         res.json({ ok: true, data: response.data });
     } catch (error) {
         console.error("Google Image API 호출 오류:", error.response ? error.response.data : error.message);
         res.status(500).json({ ok: false, error: 'Google Image API 호출 오류' });
     }
 });
-
-
 
 // Cloudinary API 프록시
 app.get('/api/cloudinary/:userId', async (req, res) => {
@@ -192,7 +162,6 @@ app.get('/api/coupang/:userId', async (req, res) => {
         res.status(500).json({ ok: false, error: 'Coupang API 호출 오류' });
     }
 });
-
 
 app.listen(PORT, () => {
     console.log(`프록시 서버가 ${process.env.DOMAIN}:${PORT}에서 실행 중입니다.`);
