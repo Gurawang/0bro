@@ -23,6 +23,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // 추가된 CORS 설정
 app.use(express.json());
 
 // OpenAI API 프록시
