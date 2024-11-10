@@ -12,7 +12,6 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 
-
 // Firebase Admin 초기화
 admin.initializeApp({
     credential: admin.credential.cert({
@@ -29,10 +28,6 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // 모든 OPTIONS 요청에 대해 CORS 허용
 app.use(express.json());
 
-app.use((req, res, next) => {
-    console.log(`요청된 경로: ${req.path}`);
-    next();
-});
 
 // OpenAI API 프록시
 app.get('/api/openai/:userId', async (req, res) => {
