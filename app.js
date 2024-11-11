@@ -338,6 +338,11 @@ window.addEventListener("DOMContentLoaded", () => {
     initHamburgerMenu(); // 페이지 최초 로드 시 햄버거 메뉴 초기화
     router(window.location.pathname);
     window.onpopstate = () => router(window.location.pathname);
+
+    // 페이지가 설정 페이지인 경우 새로고침 시에도 checkAPIConnections 호출
+    if (window.location.pathname === "/settings") {
+        checkAPIConnections(); // 페이지 새로고침 시 API 상태 확인
+    }
 });
 
 // 로그인 상태 확인 (임시로 localStorage 사용)
@@ -383,7 +388,7 @@ async function router(path) {
             content.innerHTML = page;
             showContent("status"); // 초기 상태로 status를 표시
             initSettingsPage(); // 설정 페이지 초기화
-            checkAPIConnections(); // API 연결 상태 확인
+            checkAPIConnections(); // 설정 페이지에서 API 상태 확인
             document.body.classList.add("settings-page"); // 설정 페이지에만 클래스 추가
             return; // 추가 설정 방지
         case "/guide":
@@ -411,8 +416,6 @@ async function router(path) {
     initHamburgerMenu(); // 각 페이지 전환 후 햄버거 메뉴 초기화
 }
 
-// load 이벤트로 초기 설정 확인 및 실행
-window.addEventListener("load", () => router(window.location.pathname));
 
 // 페이지 콘텐츠 로드 함수
 async function fetchPage(url) {
