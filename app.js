@@ -796,21 +796,21 @@ async function checkAPIConnections() {
     if (!userId) return;
 
     async function updateStatus(elementId, service) {
-        try {
-            const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
-            const result = await response.json().catch(() => {
-                console.error(`${service} API 유효성 확인 오류: JSON 응답이 아닙니다.`);
-                return { ok: false }; // JSON 응답이 아닌 경우 연결되지 않은 것으로 처리
-            });
-            const connected = result.ok;
-            const element = document.getElementById(elementId);
-            element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
-            element.querySelector('.status').classList.remove("connected", "disconnected");
-            element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
-        } catch (error) {
-            console.error(`${service} API 유효성 확인 오류:`, error);
-        }
+    try {
+        const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
+        const result = await response.json().catch(() => {
+            console.error(`${service} API 유효성 확인 오류: JSON 응답이 아닙니다.`);
+            return { ok: false }; // JSON 응답이 아닌 경우 연결되지 않은 것으로 처리
+        });
+        const connected = result.ok;
+        const element = document.getElementById(elementId);
+        element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
+        element.querySelector('.status').classList.remove("connected", "disconnected");
+        element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
+    } catch (error) {
+        console.error(`${service} API 유효성 확인 오류:`, error);
     }
+}
 
     await updateStatus("statusOpenAI", "openai");
     await updateStatus("statusGemini", "gemini");
