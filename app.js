@@ -797,7 +797,7 @@ async function checkAPIConnections() {
 
     async function updateStatus(elementId, service) {
     try {
-        const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
+        const response = await fetch(`https://www.dokdolove.com/api/${service}/${userId}`);
         
         // 응답 확인을 위한 로그 추가
         console.log(`Response for ${service}:`, response);
