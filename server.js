@@ -33,12 +33,13 @@ app.use(express.json());
 // 유효성 검증을 위한 공통 함수
 async function validateApiKey({ endpoint, headers, params }) {
     try {
-        console.log("Sending request to:", endpoint);
-        console.log("With headers:", headers);
-        console.log("And params:", params);
-        
         const response = await axios.get(endpoint, { headers, params });
+        
+        // Log the response to troubleshoot unexpected formats
         console.log("Received response with status:", response.status);
+        console.log("Response data:", response.data);
+        
+        // Check for a 200 status as an indicator of a valid API response
         return response.status === 200;
     } catch (error) {
         console.error("API 호출 오류:", error.message);
@@ -46,7 +47,7 @@ async function validateApiKey({ endpoint, headers, params }) {
     }
 }
 
-// OpenAI API 프록시
+// 각 API 엔드포인트 설정
 app.get('/api/openai/:userId', async (req, res) => {
     const userId = req.params.userId;
     try {
@@ -66,7 +67,6 @@ app.get('/api/openai/:userId', async (req, res) => {
     }
 });
 
-// Gemini API 프록시
 app.get('/api/gemini/:userId', async (req, res) => {
     const userId = req.params.userId;
     try {
@@ -86,7 +86,6 @@ app.get('/api/gemini/:userId', async (req, res) => {
     }
 });
 
-// Google Image API 프록시
 app.get('/api/googleimage/:userId', async (req, res) => {
     const userId = req.params.userId;
     try {
@@ -107,7 +106,6 @@ app.get('/api/googleimage/:userId', async (req, res) => {
     }
 });
 
-// Cloudinary API 프록시
 app.get('/api/cloudinary/:userId', async (req, res) => {
     const userId = req.params.userId;
     try {
@@ -129,7 +127,6 @@ app.get('/api/cloudinary/:userId', async (req, res) => {
     }
 });
 
-// Pixabay API 프록시
 app.get('/api/pixabay/:userId', async (req, res) => {
     const userId = req.params.userId;
     try {
@@ -149,7 +146,6 @@ app.get('/api/pixabay/:userId', async (req, res) => {
     }
 });
 
-// Coupang API 프록시
 app.get('/api/coupang/:userId', async (req, res) => {
     const userId = req.params.userId;
     try {
