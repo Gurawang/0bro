@@ -810,8 +810,8 @@ async function updateStatus(elementId, service) {
             } else {
                 // 사이드바가 다른 항목일 때
                 element.textContent = connected ? "연결됨" : "연결 안됨";
-                element.classList.remove("connected", "disconnected");
-                element.classList.add(connected ? "connected" : "disconnected");
+
+                element.style.color = connected ? "green" : "red";
             }
         }
     } catch (error) {
