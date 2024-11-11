@@ -34,13 +34,15 @@ app.use(express.json());
 async function validateApiKey({ endpoint, headers, params }) {
     try {
         const response = await axios.get(endpoint, { headers, params });
-        
-        // Log the response to troubleshoot unexpected formats
-        console.log("Received response with status:", response.status);
-        console.log("Response data:", response.data);
-        
-        // Check for a 200 status as an indicator of a valid API response
-        return response.status === 200;
+
+        // JSON 응답인지 확인
+        const contentType = response.headers['content-type'];
+        if (contentType && contentType.includes('application/json')) {
+            return response.status === 200;
+        } else {
+            console.error("Unexpected content type:", contentType);
+            return false;
+        }
     } catch (error) {
         console.error("API 호출 오류:", error.message);
         return false;
