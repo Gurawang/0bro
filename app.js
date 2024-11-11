@@ -360,9 +360,6 @@ function requireLogin(event, path) {
     }
 }
 
-// DOMContentLoaded 이벤트에서 페이지 초기화 및 설정 경로 확인
-document.addEventListener("DOMContentLoaded", initializePage);
-
 // 페이지 로드 및 설정 경로를 감지하고 checkAPIConnections 함수 호출
 async function initializePage() {
     const content = document.getElementById("content");
@@ -427,6 +424,9 @@ async function router(path) {
     }
     initHamburgerMenu(); // 각 페이지 전환 후 햄버거 메뉴 초기화
 }
+
+// DOMContentLoaded 이벤트에서 페이지 초기화 및 설정 경로 확인
+document.addEventListener("load", initializePage);
 
 
 // 페이지 콘텐츠 로드 함수
