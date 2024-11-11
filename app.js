@@ -503,31 +503,26 @@ function showContent(contentType) {
                     </div>
                 </div>
             `;
+            setTimeout(() => {
+                const statusOverlay = document.getElementById("statusOverlay");
+                if (statusOverlay) {
+                    statusOverlay.style.display = "flex";
+                }
 
-
-            // DOM에 statusOverlay 요소가 있는지 확인 후 로딩 오버레이 표시
-            const statusOverlay = document.getElementById("statusOverlay");
-            if (statusOverlay) {
-                statusOverlay.style.display = "flex";
-
-                // 3초 후에 '확인 중...' 상태가 지속되면 checkAPIConnections 실행
                 setTimeout(() => {
                     const statusElements = settingsContent.querySelectorAll(".status-box .status");
                     
-                    // '확인 중...' 상태가 지속되는지 확인
                     const needsCheck = Array.from(statusElements).some(element => element.textContent === "확인 중...");
                     
                     if (needsCheck) {
                         checkAPIConnections();
-                    } else {
-                        // 로딩 오버레이 숨김
+                    } else if (statusOverlay) {
                         statusOverlay.style.display = "none";
                     }
                 }, 3000);
 
-                // API 상태 확인 함수 실행
                 checkAPIConnections();
-            }
+            }, 0);
             break;
 
         // OpenAI 설정 UI
