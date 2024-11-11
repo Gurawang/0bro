@@ -797,7 +797,7 @@ async function checkAPIConnections() {
 
     async function updateStatus(elementId, service) {
         try {
-            const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
+            const response = await fetch(`https://www.dokdolove.com/api/${service}/${userId}`);
             const result = await response.json();
             const connected = result.ok;
             const element = document.getElementById(elementId);
@@ -820,24 +820,7 @@ async function checkAPIConnections() {
     await updateBlogStatusCount();
 }
 
-// 현재 상태 화면에 등록된 블로그 갯수를 업데이트하는 함수
-async function updateBlogStatusCount() {
-    try {
-        const userId = auth.currentUser.uid;
-        const wordpressSnapshot = await db.collection("settings").doc(userId).collection("wordpress").get();
-        const googleBlogSnapshot = await db.collection("settings").doc(userId).collection("googleBlog").get();
 
-        // 워드프레스와 구글 블로그 갯수 카운트
-        const wordpressCount = wordpressSnapshot.size || 0;
-        const googleBlogCount = googleBlogSnapshot.size || 0;
-
-        // 현재 상태 화면에 갯수 반영
-        document.getElementById("statusWordpress").querySelector('.count').textContent = `${wordpressCount}개 등록됨`;
-        document.getElementById("statusGoogleBlog").querySelector('.count').textContent = `${googleBlogCount}개 등록됨`;
-    } catch (error) {
-        console.error("블로그 상태 업데이트 오류:", error);
-    }
-}
 
 // 각 API 키 검증 함수
 async function validateOpenAIKey(userId) {
@@ -1221,6 +1204,25 @@ async function loadCoupangSettings() {
     }
 }
 
+
+// 현재 상태 화면에 등록된 블로그 갯수를 업데이트하는 함수
+async function updateBlogStatusCount() {
+    try {
+        const userId = auth.currentUser.uid;
+        const wordpressSnapshot = await db.collection("settings").doc(userId).collection("wordpress").get();
+        const googleBlogSnapshot = await db.collection("settings").doc(userId).collection("googleBlog").get();
+
+        // 워드프레스와 구글 블로그 갯수 카운트
+        const wordpressCount = wordpressSnapshot.size || 0;
+        const googleBlogCount = googleBlogSnapshot.size || 0;
+
+        // 현재 상태 화면에 갯수 반영
+        document.getElementById("statusWordpress").querySelector('.count').textContent = `${wordpressCount}개 등록됨`;
+        document.getElementById("statusGoogleBlog").querySelector('.count').textContent = `${googleBlogCount}개 등록됨`;
+    } catch (error) {
+        console.error("블로그 상태 업데이트 오류:", error);
+    }
+}
 
 
 let currentEditId = null; // 현재 편집 중인 워드프레스 ID
