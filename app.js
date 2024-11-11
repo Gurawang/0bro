@@ -798,10 +798,19 @@ async function checkAPIConnections() {
     async function updateStatus(elementId, service) {
     try {
         const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
+        
+        // 응답 확인을 위한 로그 추가
+        console.log(`Response for ${service}:`, response);
+        
+        // JSON 파싱을 시도하고 실패할 경우 예외 처리
         const result = await response.json().catch(() => {
             console.error(`${service} API 유효성 확인 오류: JSON 응답이 아닙니다.`);
             return { ok: false }; // JSON 응답이 아닌 경우 연결되지 않은 것으로 처리
         });
+        
+        // 추가 디버그 로그
+        console.log(`Parsed result for ${service}:`, result);
+        
         const connected = result.ok;
         const element = document.getElementById(elementId);
         element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
