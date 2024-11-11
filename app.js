@@ -795,33 +795,25 @@ async function checkAPIConnections() {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
 
-    async function updateStatus(elementId, service) {
-        try {
-            const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
-            const result = await response.json().catch(() => {
-                console.error(`${service} API 유효성 확인 오류: JSON 응답이 아닙니다.`);
-                return { ok: false }; // JSON 응답이 아닌 경우 연결되지 않은 것으로 처리
-            });
-            const connected = result.ok;
-            const element = document.getElementById(elementId);
-            element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
-            element.querySelector('.status').classList.remove("connected", "disconnected");
-            element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
-        } catch (error) {
-            console.error(`${service} API 유효성 확인 오류:`, error);
-        }
+    const doc = await db.collection("settings").doc(userId).get();
+    const data = doc.data();
+
+    function updateStatus(elementId, connected) {
+        const element = document.getElementById(elementId);
+        element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
+        element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
     }
 
-    await updateStatus("statusOpenAI", "openai");
-    await updateStatus("statusGemini", "gemini");
-    await updateStatus("statusGoogleAPI", "googleimage");
-    await updateStatus("statusCloudinary", "cloudinary");
-    await updateStatus("statusPixabay", "pixabay");
-    await updateStatus("statusCoupang", "coupang");
+    updateStatus("statusOpenAI", await validateOpenAIKey(userId));
+    updateStatus("statusGemini", await validateGeminiKey(userId));
+    updateStatus("statusGoogleAPI", await validateGoogleImageSettings(userId));
+    updateStatus("statusCloudinary", await validateCloudinarySettings(userId));
+    updateStatus("statusPixabay", await validatePixabayKey(userId));
+    updateStatus("statusCoupang", await validateCoupangKey(userId));
 
+    // 블로그 상태 업데이트 추가
     await updateBlogStatusCount();
 }
-
 
 
 // 각 API 키 검증 함수
