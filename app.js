@@ -338,10 +338,6 @@ window.addEventListener("DOMContentLoaded", () => {
     initHamburgerMenu(); // 페이지 최초 로드 시 햄버거 메뉴 초기화
     router(window.location.pathname);
     window.onpopstate = () => router(window.location.pathname);
-    // URL이 설정 페이지(/settings)일 때 checkAPIConnections 호출
-    if (window.location.pathname === "/settings") {
-        checkAPIConnections();
-    }
 });
 
 // 로그인 상태 확인 (임시로 localStorage 사용)
@@ -361,6 +357,24 @@ function requireLogin(event, path) {
         navigateTo(event, path);
     } else {
         navigateTo(event, "/login");
+    }
+}
+
+// DOMContentLoaded 이벤트에서 페이지 초기화 및 설정 경로 확인
+document.addEventListener("DOMContentLoaded", initializePage);
+
+// 페이지 로드 및 설정 경로를 감지하고 checkAPIConnections 함수 호출
+async function initializePage() {
+    const content = document.getElementById("content");
+
+    // 페이지 로드 시 현재 경로가 /settings인 경우 checkAPIConnections 실행
+    if (window.location.pathname === "/settings") {
+        const page = await fetchPage("settings.html");
+        content.innerHTML = page;
+        showContent("status"); // 초기 상태로 status를 표시
+        checkAPIConnections(); // API 연결 상태 확인
+        initSettingsPage();
+        document.body.classList.add("settings-page");
     }
 }
 
@@ -385,6 +399,7 @@ async function router(path) {
             page = await fetchPage("settings.html");
             content.innerHTML = page;
             showContent("status"); // 초기 상태로 status를 표시
+            checkAPIConnections(); // API 연결 상태 확인
             initSettingsPage(); // 설정 페이지 초기화
             document.body.classList.add("settings-page"); // 설정 페이지에만 클래스 추가
             return; // 추가 설정 방지
