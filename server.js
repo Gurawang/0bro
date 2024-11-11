@@ -39,6 +39,9 @@ app.use((req, res, next) => {
 async function validateApiKey({ endpoint, headers, params }) {
     try {
         console.log("Sending request to:", endpoint);
+        console.log("With headers:", headers);
+        console.log("And params:", params);
+        
         const response = await axios.get(endpoint, { headers, params });
         console.log("Received response with status:", response.status);
         return response.status === 200;
