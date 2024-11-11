@@ -503,6 +503,12 @@ function showContent(contentType) {
                     </div>
                 </div>
             `;
+
+            
+            // 로딩 오버레이 표시
+            const statusOverlay = document.getElementById("statusOverlay");
+            statusOverlay.style.display = "flex";
+
             // 3초 후에 '확인 중...' 상태가 지속되면 checkAPIConnections 실행
             setTimeout(() => {
                 const statusElements = settingsContent.querySelectorAll(".status-box .status");
@@ -512,6 +518,9 @@ function showContent(contentType) {
                 
                 if (needsCheck) {
                     checkAPIConnections();
+                } else {
+                    // 로딩 오버레이 숨김
+                    statusOverlay.style.display = "none";
                 }
             }, 3000);
 
