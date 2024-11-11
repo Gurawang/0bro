@@ -360,20 +360,6 @@ function requireLogin(event, path) {
     }
 }
 
-// 페이지 로드 및 설정 경로를 감지하고 checkAPIConnections 함수 호출
-async function initializePage() {
-    const content = document.getElementById("content");
-
-    // 페이지 로드 시 현재 경로가 /settings인 경우 checkAPIConnections 실행
-    if (window.location.pathname === "/settings") {
-        const page = await fetchPage("settings.html");
-        content.innerHTML = page;
-        showContent("status"); // 초기 상태로 status를 표시
-        checkAPIConnections(); // API 연결 상태 확인
-        initSettingsPage();
-        document.body.classList.add("settings-page");
-    }
-}
 
 // 라우터 함수: 설정 페이지에 처음 진입할 때만 settings.html을 불러오도록 수정
 async function router(path) {
@@ -396,8 +382,8 @@ async function router(path) {
             page = await fetchPage("settings.html");
             content.innerHTML = page;
             showContent("status"); // 초기 상태로 status를 표시
-            checkAPIConnections(); // API 연결 상태 확인
             initSettingsPage(); // 설정 페이지 초기화
+            checkAPIConnections(); // API 연결 상태 확인
             document.body.classList.add("settings-page"); // 설정 페이지에만 클래스 추가
             return; // 추가 설정 방지
         case "/guide":
@@ -425,9 +411,8 @@ async function router(path) {
     initHamburgerMenu(); // 각 페이지 전환 후 햄버거 메뉴 초기화
 }
 
-// DOMContentLoaded 이벤트에서 페이지 초기화 및 설정 경로 확인
-document.addEventListener("load", initializePage);
-
+// load 이벤트로 초기 설정 확인 및 실행
+window.addEventListener("load", () => router(window.location.pathname));
 
 // 페이지 콘텐츠 로드 함수
 async function fetchPage(url) {
