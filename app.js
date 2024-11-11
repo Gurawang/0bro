@@ -336,22 +336,9 @@ async function initializeLogin() {
 // 초기 로드 및 뒤로/앞으로 버튼 대응
 window.addEventListener("DOMContentLoaded", () => {
     initHamburgerMenu(); // 페이지 최초 로드 시 햄버거 메뉴 초기화
-    handleInitialRoute(); // 초기 경로 처리
-    window.onpopstate = () => router(window.location.pathname); // 뒤로/앞으로 버튼 대응
+    router(window.location.pathname);
+    window.onpopstate = () => router(window.location.pathname);
 });
-
-// 초기 경로 처리 함수
-async function handleInitialRoute() {
-    const path = window.location.pathname;
-    if (path === "/settings") {
-        // settings 페이지 초기화 및 API 상태 확인
-        await router(path);
-        checkAPIConnections();
-    } else {
-        // 나머지 경로 라우팅
-        router(path);
-    }
-}
 
 // 로그인 상태 확인 (임시로 localStorage 사용)
 const isLoggedIn = () => localStorage.getItem('loggedIn') === 'true';
@@ -396,7 +383,6 @@ async function router(path) {
             content.innerHTML = page;
             showContent("status"); // 초기 상태로 status를 표시
             initSettingsPage(); // 설정 페이지 초기화
-            checkAPIConnections(); // 설정 페이지에서 API 상태 확인
             document.body.classList.add("settings-page"); // 설정 페이지에만 클래스 추가
             return; // 추가 설정 방지
         case "/guide":
@@ -517,7 +503,20 @@ function showContent(contentType) {
                     </div>
                 </div>
             `;
-            checkAPIConnections(); // API 상태 확인 함수 호출
+            // 3초 후에 '확인 중...' 상태가 지속되면 checkAPIConnections 실행
+            setTimeout(() => {
+                const statusElements = settingsContent.querySelectorAll(".status-box .status");
+                
+                // '확인 중...' 상태가 지속되는지 확인
+                const needsCheck = Array.from(statusElements).some(element => element.textContent === "확인 중...");
+                
+                if (needsCheck) {
+                    checkAPIConnections();
+                }
+            }, 3000);
+
+            // API 상태 확인 함수 실행
+            checkAPIConnections();
             break;
 
         // OpenAI 설정 UI
