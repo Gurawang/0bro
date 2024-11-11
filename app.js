@@ -381,6 +381,7 @@ async function router(path) {
             page = await fetchPage("settings.html");
             content.innerHTML = page;
             showContent("status"); // 초기 상태로 status를 표시
+            checkAPIConnections();
             initSettingsPage(); // 설정 페이지 초기화
             document.body.classList.add("settings-page"); // 설정 페이지에만 클래스 추가
             return; // 추가 설정 방지
