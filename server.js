@@ -2,18 +2,10 @@ const express = require('express');
 const axios = require('axios');
 const admin = require('firebase-admin');
 const cors = require('cors');
-const fs = require('fs');
-const https = require('https');
 require('dotenv').config();
 
 const app = express();
-const PORT = 443; // HTTPS 기본 포트
-
-// SSL 인증서 옵션 설정
-const sslOptions = {
-    key: fs.readFileSync('./www_dokdolove.com.key'),
-    cert: fs.readFileSync('./www_dokdolove.com_cert.crt')
-};
+const PORT = 5000; // Caddy에서 프록시할 포트
 
 // CORS 설정
 const corsOptions = {
@@ -161,7 +153,7 @@ app.get('/api/coupang/:userId', async (req, res) => {
     }
 });
 
-// HTTPS 서버 실행
-https.createServer(sslOptions, app).listen(PORT, () => {
-    console.log(`HTTPS 서버가 https://www.dokdolove.com에서 실행 중입니다.`);
+// HTTP 서버 실행 (HTTPS 대신 HTTP로 실행)
+app.listen(PORT, () => {
+    console.log(`서버가 http://localhost:${PORT}에서 실행 중입니다.`);
 });
