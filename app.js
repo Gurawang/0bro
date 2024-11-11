@@ -336,14 +336,22 @@ async function initializeLogin() {
 // 초기 로드 및 뒤로/앞으로 버튼 대응
 window.addEventListener("DOMContentLoaded", () => {
     initHamburgerMenu(); // 페이지 최초 로드 시 햄버거 메뉴 초기화
-    router(window.location.pathname);
-    window.onpopstate = () => router(window.location.pathname);
-
-    // 페이지가 설정 페이지인 경우 새로고침 시에도 checkAPIConnections 호출
-    if (window.location.pathname === "/settings") {
-        checkAPIConnections(); // 페이지 새로고침 시 API 상태 확인
-    }
+    handleInitialRoute(); // 초기 경로 처리
+    window.onpopstate = () => router(window.location.pathname); // 뒤로/앞으로 버튼 대응
 });
+
+// 초기 경로 처리 함수
+async function handleInitialRoute() {
+    const path = window.location.pathname;
+    if (path === "/settings") {
+        // settings 페이지 초기화 및 API 상태 확인
+        await router(path);
+        checkAPIConnections();
+    } else {
+        // 나머지 경로 라우팅
+        router(path);
+    }
+}
 
 // 로그인 상태 확인 (임시로 localStorage 사용)
 const isLoggedIn = () => localStorage.getItem('loggedIn') === 'true';
