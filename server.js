@@ -33,7 +33,12 @@ app.use(express.json());
 // 유효성 검증을 위한 공통 함수
 async function validateApiKey({ endpoint, headers, params }) {
     try {
+        console.log("Sending request to:", endpoint);
+        console.log("With headers:", headers);
+        console.log("And params:", params);
+        
         const response = await axios.get(endpoint, { headers, params });
+        console.log("Received response with status:", response.status);
         return response.status === 200;
     } catch (error) {
         console.error("API 호출 오류:", error.message);
