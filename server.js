@@ -2,11 +2,14 @@ const express = require('express');
 const axios = require('axios');
 const admin = require('firebase-admin');
 const cors = require('cors');
+const fs = require('fs');
+const https = require('https');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// CORS 설정
 const corsOptions = {
     origin: ['https://www.dokdolove.com', 'http://localhost:5000'],
     optionsSuccessStatus: 200
@@ -27,7 +30,6 @@ const db = admin.firestore();
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // 모든 OPTIONS 요청에 대해 CORS 허용
 app.use(express.json());
-
 
 // OpenAI API 프록시
 app.get('/api/openai/:userId', async (req, res) => {
@@ -66,7 +68,7 @@ app.get('/api/gemini/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        handleError(res, error, 'Gemini');
+        res.status(500).json({ ok: false, error: 'Gemini API 호출 오류' });
     }
 });
 
@@ -79,25 +81,18 @@ app.get('/api/googleimage/:userId', async (req, res) => {
         const cx = doc.data()?.googleImageCx;
 
         if (!apiKey || !cx) {
-            console.log('Google Image API 키 또는 CX가 설정되지 않았습니다.');
             return res.status(400).json({ error: 'API 키 또는 CX가 설정되지 않았습니다.' });
         }
 
         const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-            params: {
-                key: apiKey,
-                cx: cx,
-                q: 'test'
-            }
+            params: { key: apiKey, cx: cx, q: 'test' }
         });
 
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        console.error("Google Image API 호출 오류:", error.response ? error.response.data : error.message);
         res.status(500).json({ ok: false, error: 'Google Image API 호출 오류' });
     }
 });
-
 
 // Cloudinary API 프록시
 app.get('/api/cloudinary/:userId', async (req, res) => {
@@ -116,7 +111,7 @@ app.get('/api/cloudinary/:userId', async (req, res) => {
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        handleError(res, error, 'Cloudinary');
+        res.status(500).json({ ok: false, error: 'Cloudinary API 호출 오류' });
     }
 });
 
@@ -134,7 +129,7 @@ app.get('/api/pixabay/:userId', async (req, res) => {
         const response = await axios.get(`https://pixabay.com/api/?key=${apiKey}&q=test`);
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        handleError(res, error, 'Pixabay');
+        res.status(500).json({ ok: false, error: 'Pixabay API 호출 오류' });
     }
 });
 
@@ -151,17 +146,20 @@ app.get('/api/coupang/:userId', async (req, res) => {
 
         const auth = `CEA ${coupangApiKey}:${coupangApiSecret}`;
         const response = await axios.get('https://api-gateway.coupang.com/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink', {
-            headers: {
-                'Authorization': auth,
-                'Content-Type': 'application/json;charset=UTF-8'
-            }
+            headers: { 'Authorization': auth, 'Content-Type': 'application/json;charset=UTF-8' }
         });
         res.json({ ok: true, data: response.data });
     } catch (error) {
-        handleError(res, error, 'Coupang');
+        res.status(500).json({ ok: false, error: 'Coupang API 호출 오류' });
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`프록시 서버가 ${process.env.DOMAIN}:${PORT}에서 실행 중입니다.`);
+// SSL 설정 및 서버 시작
+const options = {
+    key: fs.readFileSync('./www_dokdolove.com.key'),
+    cert: fs.readFileSync('./www_dokdolove.com_cert.crt')
+};
+
+https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
+    console.log(`HTTPS 서버가 https://www.dokdolove.com:${PORT}에서 실행 중입니다.`);
 });
