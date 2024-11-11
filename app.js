@@ -798,7 +798,10 @@ async function checkAPIConnections() {
     async function updateStatus(elementId, service) {
         try {
             const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
-            const result = await response.json();
+            const result = await response.json().catch(() => {
+                console.error(`${service} API 유효성 확인 오류: JSON 응답이 아닙니다.`);
+                return { ok: false }; // JSON 응답이 아닌 경우 연결되지 않은 것으로 처리
+            });
             const connected = result.ok;
             const element = document.getElementById(elementId);
             element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
@@ -816,7 +819,6 @@ async function checkAPIConnections() {
     await updateStatus("statusPixabay", "pixabay");
     await updateStatus("statusCoupang", "coupang");
 
-    // 블로그 상태 업데이트 추가
     await updateBlogStatusCount();
 }
 

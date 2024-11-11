@@ -5,7 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const PORT = 5000; // Caddy에서 프록시할 포트
+const PORT = 5000;
 
 // CORS 설정
 const corsOptions = {
@@ -29,7 +29,7 @@ const db = admin.firestore();
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// 모든 엔드포인트에 대해 JSON 응답 강제 적용
+// JSON 응답이 아닌 경우 에러 처리
 app.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
     next();
@@ -38,20 +38,15 @@ app.use((req, res, next) => {
 // 유효성 검증을 위한 공통 함수
 async function validateApiKey({ endpoint, headers, params }) {
     try {
-        console.log("Sending request to:", endpoint);
-        console.log("With headers:", headers);
-        console.log("And params:", params);
-        
         const response = await axios.get(endpoint, { headers, params });
-        console.log("Received response with status:", response.status);
         return response.status === 200;
     } catch (error) {
-        console.error("API 호출 오류:", error.message);
+        console.error(`API 호출 오류: ${error.message}`);
         return false;
     }
 }
 
-// OpenAI API 프록시
+// 예시: OpenAI API 프록시
 app.get('/api/openai/:userId', async (req, res) => {
     const userId = req.params.userId;
     console.log(`Received OpenAI API request for userId: ${userId}`);
@@ -68,6 +63,7 @@ app.get('/api/openai/:userId', async (req, res) => {
 
         res.json({ ok: isValid });
     } catch (error) {
+        console.error(`OpenAI API 호출 오류: ${error.message}`);
         res.status(500).json({ ok: false, error: 'OpenAI API 호출 오류' });
     }
 });
