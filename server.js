@@ -7,7 +7,13 @@ const https = require('https');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
+
+// SSL 인증서 옵션 설정
+const sslOptions = {
+    key: fs.readFileSync('./www_dokdolove.com.key'),
+    cert: fs.readFileSync('./www_dokdolove.com_cert.crt')
+};
 
 // CORS 설정
 const corsOptions = {
@@ -27,6 +33,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+// 미들웨어 설정
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // 모든 OPTIONS 요청에 대해 CORS 허용
 app.use(express.json());
@@ -154,12 +161,7 @@ app.get('/api/coupang/:userId', async (req, res) => {
     }
 });
 
-// SSL 설정 및 서버 시작
-const options = {
-    key: fs.readFileSync('./www_dokdolove.com.key'),
-    cert: fs.readFileSync('./www_dokdolove.com_cert.crt')
-};
-
-https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
+// HTTPS 서버 실행
+https.createServer(sslOptions, app).listen(PORT, () => {
     console.log(`HTTPS 서버가 https://www.dokdolove.com:${PORT}에서 실행 중입니다.`);
 });
