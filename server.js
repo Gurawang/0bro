@@ -7,7 +7,7 @@ const https = require('https');
 require('dotenv').config();
 
 const app = express();
-const PORT = 5000;
+const PORT = 443; // HTTPS 기본 포트
 
 // SSL 인증서 옵션 설정
 const sslOptions = {
@@ -17,7 +17,7 @@ const sslOptions = {
 
 // CORS 설정
 const corsOptions = {
-    origin: ['https://www.dokdolove.com', 'http://localhost:5000'],
+    origin: ['https://www.dokdolove.com'],
     optionsSuccessStatus: 200
 };
 
@@ -163,5 +163,5 @@ app.get('/api/coupang/:userId', async (req, res) => {
 
 // HTTPS 서버 실행
 https.createServer(sslOptions, app).listen(PORT, () => {
-    console.log(`HTTPS 서버가 https://www.dokdolove.com:${PORT}에서 실행 중입니다.`);
+    console.log(`HTTPS 서버가 https://www.dokdolove.com에서 실행 중입니다.`);
 });
