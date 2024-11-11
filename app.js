@@ -798,23 +798,19 @@ async function checkAPIConnections() {
     async function updateStatus(elementId, service) {
     try {
         const response = await fetch(`https://www.dokdolove.com/api/${service}/${userId}`);
-        const contentType = response.headers.get("content-type");
+        if (!response.ok) throw new Error(`${service} API에 접근할 수 없습니다.`);
 
-        if (contentType && contentType.includes("application/json")) {
-            const result = await response.json();
-            const connected = result.ok;
-            const element = document.getElementById(elementId);
-            element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
-            element.querySelector('.status').classList.remove("connected", "disconnected");
-            element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
-        } else {
-            console.error(`${service} API 유효성 확인 오류: JSON 응답이 아닙니다.`);
-        }
+        // JSON 응답이 아닐 경우 예외 처리
+        const result = await response.json();
+        const connected = result.ok;
+        const element = document.getElementById(elementId);
+        element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
+        element.querySelector('.status').classList.remove("connected", "disconnected");
+        element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
     } catch (error) {
         console.error(`${service} API 유효성 확인 오류:`, error);
     }
 }
-
 
     await updateStatus("statusOpenAI", "openai");
     await updateStatus("statusGemini", "gemini");

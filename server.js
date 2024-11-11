@@ -27,31 +27,28 @@ const db = admin.firestore();
 
 // 미들웨어 설정
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // 유효성 검증을 위한 공통 함수
 async function validateApiKey({ endpoint, headers, params }) {
     try {
+        console.log("Sending request to:", endpoint);
+        console.log("With headers:", headers);
+        console.log("And params:", params);
+        
         const response = await axios.get(endpoint, { headers, params });
-
-        // JSON 응답인지 확인
-        const contentType = response.headers['content-type'];
-        if (contentType && contentType.includes('application/json')) {
-            return response.status === 200;
-        } else {
-            console.error("Unexpected content type:", contentType);
-            return false;
-        }
+        console.log("Received response with status:", response.status);
+        return response.status === 200;
     } catch (error) {
         console.error("API 호출 오류:", error.message);
         return false;
     }
 }
 
-// 각 API 엔드포인트 설정
+// OpenAI API 프록시
 app.get('/api/openai/:userId', async (req, res) => {
     const userId = req.params.userId;
+    console.log(`Received OpenAI API request for userId: ${userId}`);
     try {
         const doc = await db.collection('settings').doc(userId).get();
         const apiKey = doc.data()?.openAIKey;
