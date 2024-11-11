@@ -832,108 +832,9 @@ async function checkAPIConnections() {
 }
 
 
-
-// 각 API 키 검증 함수
-async function validateOpenAIKey(userId) {
-    try {
-        const response = await fetch(`https://www.dokdolove.com/api/openai/${userId}`);
-        return response.ok;
-    } catch (error) {
-        console.error("OpenAI API 키 유효성 확인 오류:", error);
-        return false;
-    }
-}
-
-async function validateGeminiKey(userId) {
-    try {
-        const response = await fetch(`https://www.dokdolove.com/api/gemini/${userId}`);
-        return response.ok;
-    } catch (error) {
-        console.error("Gemini API 키 유효성 확인 오류:", error);
-        return false;
-    }
-}
-
-// Google Image API 설정 유효성 확인 함수
-async function validateGoogleImageSettings(userId) {
-    try {
-        const doc = await db.collection('settings').doc(userId).get();
-        const apiKey = doc.data()?.googleImageApiKey;
-        const cx = doc.data()?.googleImageCx;
-
-        if (!apiKey || !cx) {
-            console.warn("Google Image API 키 또는 CX가 제공되지 않았습니다.");
-            return false;
-        }
-
-        const response = await fetch(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=test`);
-        return response.ok;
-    } catch (error) {
-        console.error("Google Image API 키 유효성 확인 오류:", error);
-        return false;
-    }
-}
-
-async function validateCloudinarySettings(userId) {
-    try {
-        const response = await fetch(`https://www.dokdolove.com/api/cloudinary/${userId}`);
-        return response.ok;
-    } catch (error) {
-        console.error("Cloudinary 설정 유효성 확인 오류:", error);
-        return false;
-    }
-}
-
-async function validatePixabayKey(userId) {
-    try {
-        const response = await fetch(`https://www.dokdolove.com/api/pixabay/${userId}`);
-        return response.ok;
-    } catch (error) {
-        console.error("Pixabay API 키 유효성 확인 오류:", error);
-        return false;
-    }
-}
-
-async function validateCoupangKey(userId) {
-    try {
-        const response = await fetch(`https://www.dokdolove.com/api/coupang/${userId}`);
-        return response.ok;
-    } catch (error) {
-        console.error("Coupang Partners API 키 유효성 확인 오류:", error);
-        return false;
-    }
-}
-
-// OpenAI 설정 저장 함수
-async function saveOpenAiSettings() {
-    const apiKey = document.getElementById("openaiApiKey").value;
-    const statusIndicator = document.getElementById("openaiConnectionStatus");
-
-    try {
-        const userId = auth.currentUser.uid;
-
-        // Firestore에 API 키 저장
-        await db.collection("settings").doc(userId).set(
-            { openAIKey: apiKey },
-            { merge: true }
-        );
-
-        // 유효성 검사 및 연결 상태 업데이트
-        const isValid = await validateOpenAIKey(userId);
-        statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-        statusIndicator.style.color = isValid ? "green" : "red";
-
-        alert("OpenAI API 키가 저장되었습니다.");
-    } catch (error) {
-        console.error("API 키 저장 오류:", error);
-        alert("API 키 저장 중 오류가 발생했습니다.");
-    }
-}
-
-// Firestore에 저장된 OpenAI API 키 불러오기
+// OpenAI 설정 불러오기 및 유효성 검사
 async function loadOpenAiSettings() {
     const apiKeyInput = document.getElementById("openaiApiKey");
-    const statusIndicator = document.getElementById("openaiConnectionStatus");
 
     try {
         const userId = auth.currentUser.uid;
@@ -942,47 +843,35 @@ async function loadOpenAiSettings() {
 
         if (data?.openAIKey) {
             apiKeyInput.value = data.openAIKey;
-
-            // 초기 상태 유효성 검사
-            const isValid = await validateOpenAIKey(userId);
-            statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-            statusIndicator.style.color = isValid ? "green" : "red";
+            await updateStatus("openaiConnectionStatus", "openai");
         }
     } catch (error) {
-        console.error("API 키 불러오기 오류:", error);
+        console.error("OpenAI API 키 불러오기 오류:", error);
     }
 }
 
-// Gemini 설정 저장 함수
-async function saveGeminiSettings() {
-    const apiKey = document.getElementById("geminiApiKey").value;
-    const statusIndicator = document.getElementById("geminiConnectionStatus");
+// OpenAI 설정 저장 및 유효성 검사 업데이트
+async function saveOpenAiSettings() {
+    const apiKey = document.getElementById("openaiApiKey").value;
 
     try {
         const userId = auth.currentUser.uid;
-
-        // Firestore에 API 키 저장
         await db.collection("settings").doc(userId).set(
-            { geminiKey: apiKey },
+            { openAIKey: apiKey },
             { merge: true }
         );
 
-        // 유효성 검사 및 연결 상태 업데이트
-        const isValid = await validateGeminiKey(userId);
-        statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-        statusIndicator.style.color = isValid ? "green" : "red";
-
-        alert("Gemini API 키가 저장되었습니다.");
+        await updateStatus("openaiConnectionStatus", "openai");
+        alert("OpenAI API 키가 저장되었습니다.");
     } catch (error) {
         console.error("API 키 저장 오류:", error);
         alert("API 키 저장 중 오류가 발생했습니다.");
     }
 }
 
-// Firestore에 저장된 Gemini API 키 불러오기
+// Gemini 설정 불러오기 및 유효성 검사
 async function loadGeminiSettings() {
     const apiKeyInput = document.getElementById("geminiApiKey");
-    const statusIndicator = document.getElementById("geminiConnectionStatus");
 
     try {
         const userId = auth.currentUser.uid;
@@ -991,47 +880,36 @@ async function loadGeminiSettings() {
 
         if (data?.geminiKey) {
             apiKeyInput.value = data.geminiKey;
-
-            // 초기 상태 유효성 검사
-            const isValid = await validateGeminiKey(userId);
-            statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-            statusIndicator.style.color = isValid ? "green" : "red";
+            await updateStatus("geminiConnectionStatus", "gemini");
         }
     } catch (error) {
-        console.error("API 키 불러오기 오류:", error);
+        console.error("Gemini API 키 불러오기 오류:", error);
     }
 }
 
-// Google Image 설정 저장 함수
-async function saveGoogleImageSettings() {
-    const apiKey = document.getElementById("googleImageApiKey").value;
-    const cx = document.getElementById("googleImageCx").value;
-    const statusIndicator = document.getElementById("googleImageConnectionStatus");
+// Gemini 설정 저장 및 유효성 검사 업데이트
+async function saveGeminiSettings() {
+    const apiKey = document.getElementById("geminiApiKey").value;
 
     try {
-        const isValid = await validateGoogleImageSettings(auth.currentUser.uid);
-
         const userId = auth.currentUser.uid;
         await db.collection("settings").doc(userId).set(
-            { googleImageApiKey: apiKey, googleImageCx: cx },
+            { geminiKey: apiKey },
             { merge: true }
         );
 
-        statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-        statusIndicator.style.color = isValid ? "green" : "red";
-
-        alert("Google Image API 키와 검색 엔진 ID (CX)가 저장되었습니다.");
+        await updateStatus("geminiConnectionStatus", "gemini");
+        alert("Gemini API 키가 저장되었습니다.");
     } catch (error) {
         console.error("API 키 저장 오류:", error);
         alert("API 키 저장 중 오류가 발생했습니다.");
     }
 }
 
-// Firestore에 저장된 Google Image API 키 및 CX 불러오기
+// Google Image 설정 불러오기 및 유효성 검사
 async function loadGoogleImageSettings() {
     const apiKeyInput = document.getElementById("googleImageApiKey");
     const cxInput = document.getElementById("googleImageCx");
-    const statusIndicator = document.getElementById("googleImageConnectionStatus");
 
     try {
         const userId = auth.currentUser.uid;
@@ -1041,55 +919,38 @@ async function loadGoogleImageSettings() {
         if (data?.googleImageApiKey && data?.googleImageCx) {
             apiKeyInput.value = data.googleImageApiKey;
             cxInput.value = data.googleImageCx;
-
-            // 초기 상태 유효성 검사
-            const isValid = await validateGoogleImageSettings(userId);
-            statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-            statusIndicator.style.color = isValid ? "green" : "red";
+            await updateStatus("googleImageConnectionStatus", "googleimage");
         }
     } catch (error) {
-        console.error("API 키 불러오기 오류:", error);
+        console.error("Google Image API 키 불러오기 오류:", error);
     }
 }
 
-// Cloudinary 설정 저장 함수
-async function saveCloudinarySettings() {
-    const cloudName = document.getElementById("cloudinaryCloudName").value;
-    const apiKey = document.getElementById("cloudinaryApiKey").value;
-    const apiSecret = document.getElementById("cloudinaryApiSecret").value;
-    const statusIndicator = document.getElementById("cloudinaryConnectionStatus");
+// Google Image 설정 저장 및 유효성 검사 업데이트
+async function saveGoogleImageSettings() {
+    const apiKey = document.getElementById("googleImageApiKey").value;
+    const cx = document.getElementById("googleImageCx").value;
 
     try {
         const userId = auth.currentUser.uid;
-
-        // Firestore에 Cloudinary 설정 저장
         await db.collection("settings").doc(userId).set(
-            {
-                cloudinaryCloudName: cloudName,
-                cloudinaryApiKey: apiKey,
-                cloudinaryApiSecret: apiSecret
-            },
+            { googleImageApiKey: apiKey, googleImageCx: cx },
             { merge: true }
         );
 
-        // 유효성 검사 및 연결 상태 업데이트
-        const isValid = await validateCloudinarySettings(userId);
-        statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-        statusIndicator.style.color = isValid ? "green" : "red";
-
-        alert("Cloudinary 설정이 저장되었습니다.");
+        await updateStatus("googleImageConnectionStatus", "googleimage");
+        alert("Google Image API 키가 저장되었습니다.");
     } catch (error) {
-        console.error("Cloudinary 설정 저장 오류:", error);
-        alert("Cloudinary 설정 저장 중 오류가 발생했습니다.");
+        console.error("API 키 저장 오류:", error);
+        alert("API 키 저장 중 오류가 발생했습니다.");
     }
 }
 
-// Firestore에 저장된 Cloudinary 설정 불러오기
+// Cloudinary 설정 불러오기 및 유효성 검사
 async function loadCloudinarySettings() {
     const cloudNameInput = document.getElementById("cloudinaryCloudName");
     const apiKeyInput = document.getElementById("cloudinaryApiKey");
     const apiSecretInput = document.getElementById("cloudinaryApiSecret");
-    const statusIndicator = document.getElementById("cloudinaryConnectionStatus");
 
     try {
         const userId = auth.currentUser.uid;
@@ -1100,47 +961,41 @@ async function loadCloudinarySettings() {
             if (data.cloudinaryCloudName) cloudNameInput.value = data.cloudinaryCloudName;
             if (data.cloudinaryApiKey) apiKeyInput.value = data.cloudinaryApiKey;
             if (data.cloudinaryApiSecret) apiSecretInput.value = data.cloudinaryApiSecret;
-
-            // 초기 상태 유효성 검사
-            const isValid = await validateCloudinarySettings(userId);
-            statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-            statusIndicator.style.color = isValid ? "green" : "red";
+            await updateStatus("cloudinaryConnectionStatus", "cloudinary");
         }
     } catch (error) {
         console.error("Cloudinary 설정 불러오기 오류:", error);
     }
 }
 
-// Pixabay 설정 저장 함수
-async function savePixabaySettings() {
-    const apiKey = document.getElementById("pixabayApiKey").value;
-    const statusIndicator = document.getElementById("pixabayConnectionStatus");
+// Cloudinary 설정 저장 및 유효성 검사 업데이트
+async function saveCloudinarySettings() {
+    const cloudName = document.getElementById("cloudinaryCloudName").value;
+    const apiKey = document.getElementById("cloudinaryApiKey").value;
+    const apiSecret = document.getElementById("cloudinaryApiSecret").value;
 
     try {
         const userId = auth.currentUser.uid;
-
-        // Firestore에 API 키 저장
         await db.collection("settings").doc(userId).set(
-            { pixabayApiKey: apiKey },
+            {
+                cloudinaryCloudName: cloudName,
+                cloudinaryApiKey: apiKey,
+                cloudinaryApiSecret: apiSecret
+            },
             { merge: true }
         );
 
-        // 유효성 검사 및 연결 상태 업데이트
-        const isValid = await validatePixabayKey(userId);
-        statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-        statusIndicator.style.color = isValid ? "green" : "red";
-
-        alert("Pixabay API 키가 저장되었습니다.");
+        await updateStatus("cloudinaryConnectionStatus", "cloudinary");
+        alert("Cloudinary 설정이 저장되었습니다.");
     } catch (error) {
-        console.error("API 키 저장 오류:", error);
-        alert("API 키 저장 중 오류가 발생했습니다.");
+        console.error("Cloudinary 설정 저장 오류:", error);
+        alert("Cloudinary 설정 저장 중 오류가 발생했습니다.");
     }
 }
 
-// Firestore에 저장된 Pixabay API 키 불러오기
+// Pixabay 설정 불러오기 및 유효성 검사
 async function loadPixabaySettings() {
     const apiKeyInput = document.getElementById("pixabayApiKey");
-    const statusIndicator = document.getElementById("pixabayConnectionStatus");
 
     try {
         const userId = auth.currentUser.uid;
@@ -1149,52 +1004,36 @@ async function loadPixabaySettings() {
 
         if (data?.pixabayApiKey) {
             apiKeyInput.value = data.pixabayApiKey;
-
-            // 초기 상태 유효성 검사
-            const isValid = await validatePixabayKey(userId);
-            statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-            statusIndicator.style.color = isValid ? "green" : "red";
+            await updateStatus("pixabayConnectionStatus", "pixabay");
         }
     } catch (error) {
         console.error("Pixabay API 키 불러오기 오류:", error);
     }
 }
 
-// 쿠팡 파트너스 설정 저장 함수
-async function saveCoupangSettings() {
-    const apiKey = document.getElementById("coupangApiKey").value;
-    const apiSecret = document.getElementById("coupangApiSecret").value;
-    const statusIndicator = document.getElementById("coupangConnectionStatus");
+// Pixabay 설정 저장 및 유효성 검사 업데이트
+async function savePixabaySettings() {
+    const apiKey = document.getElementById("pixabayApiKey").value;
 
     try {
         const userId = auth.currentUser.uid;
-
-        // Firestore에 API 키 저장
         await db.collection("settings").doc(userId).set(
-            {
-                coupangApiKey: apiKey,
-                coupangApiSecret: apiSecret
-            },
+            { pixabayApiKey: apiKey },
             { merge: true }
         );
 
-        // 유효성 검사 및 연결 상태 업데이트
-        const isValid = await validateCoupangKey(userId);
-        statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-        statusIndicator.style.color = isValid ? "green" : "red";
-
-        alert("쿠팡 파트너스 API 키가 저장되었습니다.");
+        await updateStatus("pixabayConnectionStatus", "pixabay");
+        alert("Pixabay API 키가 저장되었습니다.");
     } catch (error) {
         console.error("API 키 저장 오류:", error);
         alert("API 키 저장 중 오류가 발생했습니다.");
     }
 }
 
-// Firestore에 저장된 쿠팡 파트너스 설정 불러오기
+// 쿠팡 파트너스 설정 불러오기 및 유효성 검사
 async function loadCoupangSettings() {
     const apiKeyInput = document.getElementById("coupangApiKey");
     const apiSecretInput = document.getElementById("coupangApiSecret");
-    const statusIndicator = document.getElementById("coupangConnectionStatus");
 
     try {
         const userId = auth.currentUser.uid;
@@ -1204,16 +1043,36 @@ async function loadCoupangSettings() {
         if (data) {
             if (data.coupangApiKey) apiKeyInput.value = data.coupangApiKey;
             if (data.coupangApiSecret) apiSecretInput.value = data.coupangApiSecret;
-
-            // 초기 상태 유효성 검사
-            const isValid = await validateCoupangKey(userId);
-            statusIndicator.textContent = isValid ? "연결됨" : "연결 안됨";
-            statusIndicator.style.color = isValid ? "green" : "red";
+            await updateStatus("coupangConnectionStatus", "coupang");
         }
     } catch (error) {
         console.error("쿠팡 파트너스 설정 불러오기 오류:", error);
     }
 }
+
+// 쿠팡 파트너스 설정 저장 및 유효성 검사 업데이트
+async function saveCoupangSettings() {
+    const apiKey = document.getElementById("coupangApiKey").value;
+    const apiSecret = document.getElementById("coupangApiSecret").value;
+
+    try {
+        const userId = auth.currentUser.uid;
+        await db.collection("settings").doc(userId).set(
+            {
+                coupangApiKey: apiKey,
+                coupangApiSecret: apiSecret
+            },
+            { merge: true }
+        );
+
+        await updateStatus("coupangConnectionStatus", "coupang");
+        alert("쿠팡 파트너스 API 키가 저장되었습니다.");
+    } catch (error) {
+        console.error("API 키 저장 오류:", error);
+        alert("API 키 저장 중 오류가 발생했습니다.");
+    }
+}
+
 
 
 // 현재 상태 화면에 등록된 블로그 갯수를 업데이트하는 함수
