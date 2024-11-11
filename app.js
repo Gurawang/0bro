@@ -790,12 +790,11 @@ function showOpenAiGuidePopup() {
     alert("OpenAI API 발급 가이드 팝업을 표시합니다."); // 이후 팝업창으로 구현 예정
 }
 
-// API 연결 상태 확인 함수
-async function checkAPIConnections() {
+// updateStatus 함수 정의를 checkAPIConnections 함수 외부로 이동
+async function updateStatus(elementId, service) {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
 
-    async function updateStatus(elementId, service) {
     try {
         const response = await fetch(`https://www.dokdolove.com/api/${service}/${userId}`);
         
@@ -821,6 +820,8 @@ async function checkAPIConnections() {
     }
 }
 
+// API 연결 상태 확인 함수
+async function checkAPIConnections() {
     await updateStatus("statusOpenAI", "openai");
     await updateStatus("statusGemini", "gemini");
     await updateStatus("statusGoogleAPI", "googleimage");
@@ -830,6 +831,7 @@ async function checkAPIConnections() {
 
     await updateBlogStatusCount();
 }
+
 
 
 // OpenAI 설정 불러오기 및 유효성 검사
