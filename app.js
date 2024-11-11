@@ -795,20 +795,26 @@ async function checkAPIConnections() {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
 
-    async function updateStatus(elementId, validateFunction) {
-        const connected = await validateFunction(userId);
-        const element = document.getElementById(elementId);
-        element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
-        element.querySelector('.status').classList.remove("connected", "disconnected");
-        element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
+    async function updateStatus(elementId, service) {
+        try {
+            const response = await fetch(`https://www.dokdolove.com/api/validate/${service}/${userId}`);
+            const result = await response.json();
+            const connected = result.ok;
+            const element = document.getElementById(elementId);
+            element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
+            element.querySelector('.status').classList.remove("connected", "disconnected");
+            element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
+        } catch (error) {
+            console.error(`${service} API 유효성 확인 오류:`, error);
+        }
     }
 
-    await updateStatus("statusOpenAI", validateOpenAIKey);
-    await updateStatus("statusGemini", validateGeminiKey);
-    await updateStatus("statusGoogleAPI", validateGoogleImageSettings);
-    await updateStatus("statusCloudinary", validateCloudinarySettings);
-    await updateStatus("statusPixabay", validatePixabayKey);
-    await updateStatus("statusCoupang", validateCoupangKey);
+    await updateStatus("statusOpenAI", "openai");
+    await updateStatus("statusGemini", "gemini");
+    await updateStatus("statusGoogleAPI", "googleimage");
+    await updateStatus("statusCloudinary", "cloudinary");
+    await updateStatus("statusPixabay", "pixabay");
+    await updateStatus("statusCoupang", "coupang");
 
     // 블로그 상태 업데이트 추가
     await updateBlogStatusCount();

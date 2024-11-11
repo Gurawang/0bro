@@ -2,23 +2,18 @@ const express = require('express');
 const axios = require('axios');
 const admin = require('firebase-admin');
 const cors = require('cors');
-const fs = require('fs');
-const https = require('https');
 require('dotenv').config();
 
 const app = express();
-const PORT = 443;
+const PORT = 5000; // Caddy에서 프록시할 포트
 
-const sslOptions = {
-    key: fs.readFileSync('./www_dokdolove.com.key'),
-    cert: fs.readFileSync('./www_dokdolove.com_cert.crt')
-};
-
+// CORS 설정
 const corsOptions = {
     origin: ['https://www.dokdolove.com'],
     optionsSuccessStatus: 200
 };
 
+// Firebase Admin 초기화
 admin.initializeApp({
     credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
@@ -30,63 +25,148 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+// 미들웨어 설정
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
-app.get('/api/validate/:service/:userId', async (req, res) => {
-    const { service, userId } = req.params;
-    const doc = await db.collection('settings').doc(userId).get();
-    const data = doc.data();
-
+// 유효성 검증을 위한 공통 함수
+async function validateApiKey({ endpoint, headers, params }) {
     try {
-        let response;
-        switch (service) {
-            case 'openai':
-                if (!data?.openAIKey) throw new Error('API 키 없음');
-                response = await axios.get('https://api.openai.com/v1/models', {
-                    headers: { 'Authorization': `Bearer ${data.openAIKey}` }
-                });
-                break;
-            case 'gemini':
-                if (!data?.geminiKey) throw new Error('API 키 없음');
-                response = await axios.get('https://api.gemini.com/v1/pubticker/btcusd', {
-                    headers: { 'Authorization': `Bearer ${data.geminiKey}` }
-                });
-                break;
-            case 'googleimage':
-                if (!data?.googleImageApiKey || !data?.googleImageCx) throw new Error('API 키 또는 CX 없음');
-                response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-                    params: { key: data.googleImageApiKey, cx: data.googleImageCx, q: 'test' }
-                });
-                break;
-            case 'cloudinary':
-                if (!data?.cloudinaryCloudName || !data?.cloudinaryApiKey || !data?.cloudinaryApiSecret) throw new Error('설정 없음');
-                const auth = Buffer.from(`${data.cloudinaryApiKey}:${data.cloudinaryApiSecret}`).toString('base64');
-                response = await axios.get(`https://api.cloudinary.com/v1_1/${data.cloudinaryCloudName}/resources/image`, {
-                    headers: { 'Authorization': `Basic ${auth}` }
-                });
-                break;
-            case 'pixabay':
-                if (!data?.pixabayApiKey) throw new Error('API 키 없음');
-                response = await axios.get(`https://pixabay.com/api/?key=${data.pixabayApiKey}&q=test`);
-                break;
-            case 'coupang':
-                if (!data?.coupangApiKey || !data?.coupangApiSecret) throw new Error('API 키 또는 비밀키 없음');
-                const coupangAuth = `CEA ${data.coupangApiKey}:${data.coupangApiSecret}`;
-                response = await axios.get('https://api-gateway.coupang.com/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink', {
-                    headers: { 'Authorization': coupangAuth, 'Content-Type': 'application/json;charset=UTF-8' }
-                });
-                break;
-            default:
-                throw new Error('알 수 없는 서비스');
-        }
-        res.json({ ok: response.status === 200 });
+        const response = await axios.get(endpoint, { headers, params });
+        return response.status === 200;
     } catch (error) {
-        res.status(500).json({ ok: false, error: `${service} API 키 유효성 오류` });
+        console.error("API 호출 오류:", error.message);
+        return false;
+    }
+}
+
+// OpenAI API 프록시
+app.get('/api/openai/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        const doc = await db.collection('settings').doc(userId).get();
+        const apiKey = doc.data()?.openAIKey;
+
+        if (!apiKey) return res.status(400).json({ error: 'API 키가 설정되지 않았습니다.' });
+
+        const isValid = await validateApiKey({
+            endpoint: 'https://api.openai.com/v1/models',
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+
+        res.json({ ok: isValid });
+    } catch (error) {
+        res.status(500).json({ ok: false, error: 'OpenAI API 호출 오류' });
     }
 });
 
-https.createServer(sslOptions, app).listen(PORT, () => {
-    console.log(`HTTPS 서버가 https://www.dokdolove.com에서 실행 중입니다.`);
+// Gemini API 프록시
+app.get('/api/gemini/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        const doc = await db.collection('settings').doc(userId).get();
+        const apiKey = doc.data()?.geminiKey;
+
+        if (!apiKey) return res.status(400).json({ error: 'API 키가 설정되지 않았습니다.' });
+
+        const isValid = await validateApiKey({
+            endpoint: 'https://api.gemini.com/v1/pubticker/btcusd',
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+
+        res.json({ ok: isValid });
+    } catch (error) {
+        res.status(500).json({ ok: false, error: 'Gemini API 호출 오류' });
+    }
+});
+
+// Google Image API 프록시
+app.get('/api/googleimage/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        const doc = await db.collection('settings').doc(userId).get();
+        const apiKey = doc.data()?.googleImageApiKey;
+        const cx = doc.data()?.googleImageCx;
+
+        if (!apiKey || !cx) return res.status(400).json({ error: 'API 키 또는 CX가 설정되지 않았습니다.' });
+
+        const isValid = await validateApiKey({
+            endpoint: 'https://www.googleapis.com/customsearch/v1',
+            params: { key: apiKey, cx, q: 'test' }
+        });
+
+        res.json({ ok: isValid });
+    } catch (error) {
+        res.status(500).json({ ok: false, error: 'Google Image API 호출 오류' });
+    }
+});
+
+// Cloudinary API 프록시
+app.get('/api/cloudinary/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        const doc = await db.collection('settings').doc(userId).get();
+        const { cloudinaryCloudName, cloudinaryApiKey, cloudinaryApiSecret } = doc.data() || {};
+
+        if (!cloudinaryCloudName || !cloudinaryApiKey || !cloudinaryApiSecret)
+            return res.status(400).json({ error: 'Cloudinary 설정이 부족합니다.' });
+
+        const auth = Buffer.from(`${cloudinaryApiKey}:${cloudinaryApiSecret}`).toString('base64');
+        const isValid = await validateApiKey({
+            endpoint: `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/resources/image`,
+            headers: { 'Authorization': `Basic ${auth}` }
+        });
+
+        res.json({ ok: isValid });
+    } catch (error) {
+        res.status(500).json({ ok: false, error: 'Cloudinary API 호출 오류' });
+    }
+});
+
+// Pixabay API 프록시
+app.get('/api/pixabay/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        const doc = await db.collection('settings').doc(userId).get();
+        const apiKey = doc.data()?.pixabayApiKey;
+
+        if (!apiKey) return res.status(400).json({ error: 'API 키가 설정되지 않았습니다.' });
+
+        const isValid = await validateApiKey({
+            endpoint: `https://pixabay.com/api/`,
+            params: { key: apiKey, q: 'test' }
+        });
+
+        res.json({ ok: isValid });
+    } catch (error) {
+        res.status(500).json({ ok: false, error: 'Pixabay API 호출 오류' });
+    }
+});
+
+// Coupang API 프록시
+app.get('/api/coupang/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    try {
+        const doc = await db.collection('settings').doc(userId).get();
+        const { coupangApiKey, coupangApiSecret } = doc.data() || {};
+
+        if (!coupangApiKey || !coupangApiSecret)
+            return res.status(400).json({ error: '쿠팡 API 키가 설정되지 않았습니다.' });
+
+        const auth = `CEA ${coupangApiKey}:${coupangApiSecret}`;
+        const isValid = await validateApiKey({
+            endpoint: 'https://api-gateway.coupang.com/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink',
+            headers: { 'Authorization': auth, 'Content-Type': 'application/json;charset=UTF-8' }
+        });
+
+        res.json({ ok: isValid });
+    } catch (error) {
+        res.status(500).json({ ok: false, error: 'Coupang API 호출 오류' });
+    }
+});
+
+// HTTP 서버 실행
+app.listen(PORT, () => {
+    console.log(`서버가 http://localhost:${PORT}에서 실행 중입니다.`);
 });
