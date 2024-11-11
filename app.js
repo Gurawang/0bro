@@ -790,22 +790,31 @@ function showOpenAiGuidePopup() {
     alert("OpenAI API 발급 가이드 팝업을 표시합니다."); // 이후 팝업창으로 구현 예정
 }
 
-// updateStatus를 함수 밖으로 이동하여 재사용 가능하도록
+// updateStatus 함수 정의를 checkAPIConnections 함수 외부로 이동
 async function updateStatus(elementId, service) {
     const userId = auth.currentUser?.uid;
     if (!userId) return;
 
     try {
         const response = await fetch(`https://www.dokdolove.com/api/${service}/${userId}`);
-        const result = await response.json();
-
+        
+        // 응답 확인을 위한 로그 추가
+        console.log(`Response for ${service}:`, response);
+        
+        // JSON 파싱을 시도하고 실패할 경우 예외 처리
+        const result = await response.json().catch(() => {
+            console.error(`${service} API 유효성 확인 오류: JSON 응답이 아닙니다.`);
+            return { ok: false }; // JSON 응답이 아닌 경우 연결되지 않은 것으로 처리
+        });
+        
+        // 추가 디버그 로그
+        console.log(`Parsed result for ${service}:`, result);
+        
         const connected = result.ok;
         const element = document.getElementById(elementId);
-        if (element) { // 요소가 존재하는지 확인
-            element.textContent = connected ? "연결됨" : "연결 안됨";
-            element.classList.remove("connected", "disconnected");
-            element.classList.add(connected ? "connected" : "disconnected");
-        }
+        element.querySelector('.status').textContent = connected ? "연결됨" : "연결 안됨";
+        element.querySelector('.status').classList.remove("connected", "disconnected");
+        element.querySelector('.status').classList.add(connected ? "connected" : "disconnected");
     } catch (error) {
         console.error(`${service} API 유효성 확인 오류:`, error);
     }
