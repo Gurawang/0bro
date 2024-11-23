@@ -2622,56 +2622,71 @@ async function generateCoupangAd(coupangLink) {
     }
 }
 
+// 환경 변수에서 프록시 서버 URL 가져오기
+const PROXY_SERVER_URL = 'https://proxy.dokdolove.com'; // 환경 변수로 설정 가능
+
 // Google 및 WordPress 블로그로 포스팅
 async function postToBlog(blogSelection, blogCredentials, postData) {
     try {
         if (blogCredentials.type === "wordpress") {
-            const response = await fetch(`${blogSelection}/wp-json/wp/v2/posts`, {
-                method: "POST",
+            const response = await fetch(`${PROXY_SERVER_URL}/proxy/wp-post`, {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Basic ${btoa(`${blogCredentials.username}:${blogCredentials.password}`)}`,
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    title: postData.title,
-                    content: postData.content,
-                    status: "publish",
+                    blogUrl: blogSelection,
+                    username: blogCredentials.username,
+                    password: blogCredentials.password,
+                    postData: {
+                        title: postData.title,
+                        content: postData.content,
+                        status: 'publish',
+                    },
                 }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("워드프레스 포스팅 오류:", errorData);
+            const result = await response.json();
+            if (result.success) {
+                console.log("워드프레스 포스팅 성공:", result.data);
+                return true;
+            } else {
+                console.error("워드프레스 포스팅 실패:", result.error);
                 return false;
             }
-            console.log("워드프레스 포스팅 성공");
-            return true;
         } else if (blogCredentials.type === "googleBlog") {
-            const response = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogCredentials.blogId}/posts/`, {
-                method: "POST",
+            const response = await fetch(`${PROXY_SERVER_URL}/proxy/google-post`, {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${blogCredentials.token}`,
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    title: postData.title,
-                    content: postData.content,
+                    accessToken: blogCredentials.accessToken,
+                    blogId: blogCredentials.blogId,
+                    postData: {
+                        title: postData.title,
+                        content: postData.content,
+                        status: 'publish',
+                    },
                 }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("구글 블로그 포스팅 오류:", errorData);
+            const result = await response.json();
+            if (result.success) {
+                console.log("구글 블로그 포스팅 성공:", result.data);
+                return true;
+            } else {
+                console.error("구글 블로그 포스팅 실패:", result.error);
                 return false;
             }
-            console.log("구글 블로그 포스팅 성공");
-            return true;
         }
     } catch (error) {
         console.error("포스팅 중 오류:", error);
         return false;
     }
 }
+
+
 
 
 async function fetchRealTimeKeyword() {

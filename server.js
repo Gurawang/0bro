@@ -35,6 +35,87 @@ app.use((req, res, next) => {
     next();
 });
 
+// CORS 설정
+app.use(cors({ origin: ['https://www.dokdolove.com'], optionsSuccessStatus: 200 }));
+app.use(express.json());
+
+// 공통 함수: Firestore에서 사용자 데이터 로드
+async function getUserData(userId) {
+    const doc = await db.collection('settings').doc(userId).get();
+    if (!doc.exists) {
+        throw new Error('사용자 데이터를 찾을 수 없습니다.');
+    }
+    return doc.data();
+}
+
+// 워드프레스 블로그 포스팅 프록시
+app.post('/proxy/wp-post', async (req, res) => {
+    const { userId, postData } = req.body;
+
+    try {
+        const userData = await getUserData(userId);
+        const { blogUrl, username, password } = userData.wordpressCredentials || {};
+
+        if (!blogUrl || !username || !password) {
+            return res.status(400).json({ error: '워드프레스 크리덴셜이 설정되지 않았습니다.' });
+        }
+
+        const response = await axios.post(
+            `${blogUrl}/wp-json/wp/v2/posts`,
+            {
+                title: postData.title,
+                content: postData.content,
+                status: 'publish',
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+                },
+            }
+        );
+
+        res.status(response.status).json({ success: true, data: response.data });
+    } catch (error) {
+        console.error('워드프레스 포스팅 오류:', error.message);
+        res.status(500).json({ success: false, error: '워드프레스 포스팅 오류' });
+    }
+});
+
+// 구글 블로그 포스팅 프록시
+app.post('/proxy/google-blog', async (req, res) => {
+    const { userId, postData } = req.body;
+
+    try {
+        const userData = await getUserData(userId);
+        const { blogId, googleApiKey } = userData.googleBlogCredentials || {};
+
+        if (!blogId || !googleApiKey) {
+            return res.status(400).json({ error: '구글 블로그 크리덴셜이 설정되지 않았습니다.' });
+        }
+
+        const response = await axios.post(
+            `https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`,
+            {
+                kind: 'blogger#post',
+                title: postData.title,
+                content: postData.content,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${googleApiKey}`,
+                },
+            }
+        );
+
+        res.status(response.status).json({ success: true, data: response.data });
+    } catch (error) {
+        console.error('구글 블로그 포스팅 오류:', error.message);
+        res.status(500).json({ success: false, error: '구글 블로그 포스팅 오류' });
+    }
+});
+
 // 유효성 검증을 위한 공통 함수
 async function validateApiKey({ endpoint, headers, params }) {
     try {
