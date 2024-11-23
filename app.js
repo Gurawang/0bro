@@ -2411,20 +2411,27 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
 
         const userDoc = await db.collection("settings").doc(userId).get();
         if (!userDoc.exists) {
+            console.error("Firestore에서 사용자 데이터를 찾을 수 없습니다.");
             throw new Error("사용자 데이터가 Firestore에 존재하지 않습니다.");
         }
 
         const userData = userDoc.data();
+        console.log("Firestore에서 로드된 사용자 데이터:", userData);
+
         let apiKey;
         if (aiVersion.startsWith("gpt")) {
-            apiKey = userData.openaiApiKey; // Firestore에서 OpenAI API 키
+            apiKey = userData.openaiApiKey;
+            console.log("GPT API 키:", apiKey);
         } else if (aiVersion.startsWith("gemini")) {
-            apiKey = userData.geminiApiKey; // Firestore에서 Gemini API 키
+            apiKey = userData.geminiApiKey;
+            console.log("Gemini API 키:", apiKey);
         }
 
         if (!apiKey) {
+            console.error(`Firestore에서 ${aiVersion}에 대한 API 키가 없습니다.`);
             throw new Error(`AI 버전에 대한 API 키가 설정되지 않았습니다: ${aiVersion}`);
         }
+
 
         // AI 버전 설정
         const selectedConfig = aiVersion.startsWith("gpt")
