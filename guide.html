@@ -1,0 +1,66 @@
+<div class="guide-container">
+
+    <!-- 모바일 토글 버튼 -->
+    <button class="guide-sidebar-toggle" onclick="toggleSidebar()">☰ 메뉴</button>
+
+    <!-- 오버레이 -->
+    <div class="guide-overlay" onclick="closeSidebar()"></div>
+
+
+    <div class="guide-sidebar">
+        <ul>
+            <!-- 대주제: API -->
+            <li>
+                <strong>API</strong>
+                <ul>
+                    <li><a href="#" onclick="loadGuideContent('api-overview')">API란?</a></li>
+                    <li><a href="#" onclick="loadGuideContent('openai')">OpenAI API 키 발급</a></li>
+                    <li><a href="#" onclick="loadGuideContent('gemini')">Gemini API 키 발급</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-image')">구글이미지 API 키 발급</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-cx')">구글 검색 엔진 ID 발급</a></li>
+                    <li><a href="#" onclick="loadGuideContent('cloudinary-name')">Cloudinary 이름 설정</a></li>
+                    <li><a href="#" onclick="loadGuideContent('cloudinary-key')">Cloudinary API 키 발급</a></li>
+                    <li><a href="#" onclick="loadGuideContent('cloudinary-secret')">Cloudinary API 비밀</a></li>
+                    <li><a href="#" onclick="loadGuideContent('pixabay')">픽사베이 API 키 발급</a></li>
+                    <li><a href="#" onclick="loadGuideContent('coupang-key')">쿠팡파트너스 API 키 발급</a></li>
+                    <li><a href="#" onclick="loadGuideContent('coupang-secret')">쿠팡파트너스 시크릿 키 발급</a></li>
+                </ul>
+            </li>
+            <!-- 대주제: 블로그 -->
+            <li>
+                <strong>블로그</strong>
+                <ul>
+                    <li><a href="#" onclick="loadGuideContent('wordpress-create')">워드프레스 블로그 생성</a></li>
+                    <li><a href="#" onclick="loadGuideContent('wordpress-site')">워드프레스 사이트 주소</a></li>
+                    <li><a href="#" onclick="loadGuideContent('wordpress-user')">워드프레스 유저 이름</a></li>
+                    <li><a href="#" onclick="loadGuideContent('wordpress-app-pass')">워드프레스 응용 프로그램 비밀번호 설정</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-blog-create')">구글 블로그 생성</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-blog-url')">구글 블로그 주소</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-blog-id')">구글 블로그 ID</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-client-id')">구글 클라이언트 ID 설정</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-client-secret')">구글 클라이언트 시크릿 설정</a></li>
+                    <li><a href="#" onclick="loadGuideContent('google-refresh-token')">구글 리프레시 토큰 설정</a></li>
+                </ul>
+            </li>
+            <!-- 대주제: 블로그 생성 옵션 -->
+            <li>
+                <strong>블로그 생성 옵션</strong>
+                <ul>
+                    <li><a href="#" onclick="loadGuideContent('blog-select')">나의 블로그 선택</a></li>
+                    <li><a href="#" onclick="loadGuideContent('topic-select')">주제 선택</a></li>
+                    <li><a href="#" onclick="loadGuideContent('prompt-overview')">프롬프트란?</a></li>
+                    <li><a href="#" onclick="loadGuideContent('prompt-setting')">프롬프트 설정</a></li>
+                    <li><a href="#" onclick="loadGuideContent('style')">스타일</a></li>
+                    <li><a href="#" onclick="loadGuideContent('image')">이미지</a></li>
+                    <li><a href="#" onclick="loadGuideContent('ai-select')">AI선택</a></li>
+                    <li><a href="#" onclick="loadGuideContent('posting-setting')">포스팅 설정</a></li>
+                    <li><a href="#" onclick="loadGuideContent('ad-insert')">광고 삽입</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+    <div id="guideContent" class="guide-content">
+        <!-- 가이드 내용이 이곳에 동적으로 로드됩니다 -->
+    </div>
+
+</div>

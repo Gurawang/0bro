@@ -682,6 +682,905 @@ body {
     text-decoration: underline;
 }
 
+.guide-container {
+    display: flex;
+    min-height: 80vh;
+    padding: 20px;
+    background-color: #3a3a3a;
+}
+
+/* 왼쪽 사이드바 */
+.guide-sidebar {
+    width: 250px;
+    text-align: left;
+    border-right: 1px solid #ddd;
+    padding-right: 20px;
+}
+
+.guide-sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.guide-sidebar li {
+    margin-bottom: 15px;
+}
+
+.guide-sidebar li strong {
+    font-size: 1.2em;
+    color: #fff;
+    display: block; /* 블록 요소로 변경하여 아래 마진 적용 가능 */
+    margin-bottom: 15px; /* 대주제 아래 간격 */
+}
+
+.guide-sidebar a {
+    text-decoration: none;
+    color: #ddd;
+    display: block;
+    padding: 5px 0;
+}
+
+.guide-sidebar a:hover {
+    color: #007bff;
+}
+
+/* 오른쪽 컨텐츠 영역 */
+.guide-content {
+    flex: 1;
+    padding: 20px;
+    background-color: #3f3f3f;
+    border-radius: 8px;
+    margin-left: 20px;
+    color: #fff;
+}
+
+.guide-content h1 {
+    margin-bottom: 20px;
+}
+
+.guide-content p {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+/* 선택된 항목 스타일 */
+.guide-sidebar a.selected {
+    color: #007bff; /* 파란색 강조 */
+}
+
+/* 어시스트 단계 버튼 */
+.step-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+/* 어시스트 단계 버튼과 동일한 스타일을 재사용 */
+.step-buttons button {
+    padding: 10px 20px;
+    font-size: 1em;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* 호버 효과 */
+.step-buttons button:hover {
+    background-color: #0056b3;
+}
+
+.label-with-link {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.wp-label {
+    margin-right: 10px; /* 라벨과 링크 사이의 간격 */
+}
+
+.guide-popup-link {
+    font-size: 1em;
+    color: #007bff;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.guide-popup-link:hover {
+    text-decoration: none;
+    color: #0056b3;
+}
+
+
+
+
+
+
+/* 작업 페이지 스타일 */
+#work-page {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #333;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+#work-page h2 {
+    text-align: left;
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    color: #007bff;
+}
+
+#work-page hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+}
+
+#blog-container {
+    margin-top: 10px;
+}
+
+.blog-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #333;
+    margin-bottom: 8px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.keyword-link {
+    font-size: 0.9em;
+    color: #007bff;
+    text-decoration: none;
+    margin-left: auto;
+}
+
+.section-header h2 {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.topic-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #333;
+    margin-bottom: 8px;
+}
+
+/* 상위 요소 너비에 맞춘 입력창 스타일 */
+.input-container input {
+    width: calc(100% - 20px); /* 좌우 마진을 제외하고 상위 요소 너비에 맞게 조정 */
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 8px;
+    box-sizing: border-box;
+}
+
+/* 프롬프트 옵션 스타일 */
+.prompt-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #333;
+    margin-bottom: 8px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* 입력 그룹 */
+.prompt-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
+}
+
+.prompt-input-group label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    margin-top:  20px;
+}
+
+#promptTitleInput,
+#savedPromptContent {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+textarea {
+    width: 100%;
+    height: 100px;
+    resize: none;
+}
+
+/* 저장된 목록 스타일 */
+#savedPromptList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.saved-prompt-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #333;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.saved-prompt-item:hover {
+    background-color: #3d3d3d;
+}
+
+.saved-prompt-item.selected {
+    background-color: #3d3d3d;
+    color: white;
+}
+
+/* 프롬프트 버튼 그룹 스타일 */
+#prompt-section .button-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+    padding: 0 10px; /* 그룹 전체 좌우 여백 */
+}
+
+#prompt-section .button-group button {
+    flex: 1; /* 버튼이 동일한 크기를 가지도록 설정 */
+    max-width: 200px; /* 최대 가로 크기 제한 */
+    padding: 10px 20px; /* 내부 여백 증가 */
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #f5f5f5; /* 기본 배경색 */
+    color: #333; /* 기본 글자색 */
+    transition: background-color 0.3s, transform 0.2s;
+    text-align: center;
+}
+
+#prompt-section .button-group button:hover {
+    background-color: #ddd;
+}
+
+#prompt-section .button-group button:active {
+    background-color: #ccc;
+    transform: scale(0.98); /* 클릭 시 살짝 축소 효과 */
+}
+
+/* 문장 형식 버튼 스타일 */
+#tone-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.tone-button {
+    flex: 1; /* 버튼 크기를 동일하게 */
+    padding: 10px 15px;
+    font-size: 1rem;
+    text-align: center;
+    background-color: #f5f5f5; /* 기본 배경색 */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.tone-button:hover {
+    background-color: #ddd; /* 호버 시 배경색 */
+}
+
+.tone-button:active {
+    background-color: #ccc; /* 클릭 시 배경색 */
+    transform: scale(0.98); /* 클릭 시 살짝 축소 효과 */
+}
+
+/* 선택된 버튼 스타일 */
+.tone-button.selected {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+/* 언어 선택 스타일 */
+.language-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.language-button {
+    flex: 1;
+    padding: 10px 15px;
+    font-size: 1rem;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    text-align: center;
+    margin: 0 5px;
+}
+
+.language-button:hover {
+    background-color: #ddd;
+}
+
+.language-button.selected {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+/* 이모티콘 토글 스타일 */
+.toggle-option {
+    display: flex;
+    justify-content: space-between; /* 좌우 배치 */
+    align-items: center;
+    margin-top: 20px;
+    padding: 8px;
+}
+
+/* AI 옵션 컨테이너 */
+.ai-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #333;
+    margin-bottom: 8px;
+}
+
+/* 선택 시 스타일 */
+.ai-option:hover {
+    background-color: #3d3d3d;
+}
+
+/* 자동 포스팅 섹션 스타일 */
+.auto-posting-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 15px;
+}
+
+/* 시간 버튼 그룹 */
+.time-button-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* 시간 버튼 및 직접 입력 버튼 스타일 */
+.time-button, .custom-button {
+    flex: 1;
+    max-width: 120px; /* 동일한 크기로 제한 */
+    padding: 10px 15px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    background-color: #f5f5f5;
+    color: #333;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.3s;
+}
+
+.time-button:hover, .custom-button:hover {
+    background-color: #ddd;
+}
+
+/* 선택된 버튼 스타일 */
+.time-button.active, .custom-button.active {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+}
+
+
+/* 직접 입력 옵션 */
+.custom-interval-group {
+    display: flex;
+    align-items: center; /* 세로 가운데 정렬 */
+    gap: 10px; /* 요소 간격 */
+    margin-top: 10px; /* 상단 여백 */
+}
+
+#customInterval {
+    width: 200px; /* 입력창 크기 3시간 버튼과 동일 */
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center; /* 텍스트 가운데 정렬 */
+}
+
+#customInterval + span {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* 포스팅 옵션 스타일 */
+.schedule-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.schedule-input-group label {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.schedule-input-group input {
+    width: 100px;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center;
+}
+
+/* 이미지 섹션 스타일 */
+#image-selection .image-toggle,
+#image-selection .image-option,
+#image-search-options .image-search-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px;
+}
+
+#image-search-options{
+    margin-left: 40px;
+}
+
+#image-options {
+    margin-top: 10px;
+}
+
+/* 업로드한 이미지 스타일 */
+#uploadedImages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 24px;
+}
+
+#uploadedImages img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    
+}
+
+#uploadedImages .image-container {
+    position: relative;
+}
+
+#uploadedImages .image-container .delete-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* 파일 선택 버튼 스타일 */
+.upload-button {
+    display: inline-block;
+    padding: 10px 15px;
+    font-size: 1rem;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.upload-button:hover {
+    background-color: #0056b3;
+}
+
+/* 텍스트 입력창 스타일 */
+#text-input-container textarea {
+    width: 100%;
+    height: 100px;
+    resize: none;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-top: 10px;
+}
+
+
+/* 광고 옵션 스타일 */
+.ads-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #333;
+    margin-bottom: 8px;
+}
+
+/* 광고 입력창 스타일 */
+#coupang-link-input {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#coupangLink {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    margin-top: 5px;
+}
+
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-label input {
+    display: none;
+}
+
+.toggle-switch {
+    width: 40px;
+    height: 20px;
+    background-color: #ccc;
+    border-radius: 15px;
+    position: relative;
+    transition: background-color 0.3s;
+}
+
+.toggle-switch::after {
+    content: "";
+    width: 18px;
+    height: 18px;
+    background-color: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    transition: transform 0.3s;
+}
+
+input:checked + .toggle-switch {
+    background-color: #007bff;
+}
+
+input:checked + .toggle-switch::after {
+    transform: translateX(20px);
+}
+
+/* 설정 저장 및 불러오기 섹션 스타일 */
+#settings-save-load {
+    margin-top: 20px;
+}
+
+/* 저장된 설정 목록 스타일 */
+.settings-list {
+    list-style-type: none;
+    padding: 0;
+    margin-bottom: 15px;
+}
+
+.settings-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #333;
+
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+.settings-list li span {
+    flex-grow: 1;
+    text-align: left;
+}
+
+.settings-list li button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.settings-list li button.delete {
+    background-color: #dc3545;
+}
+
+.settings-save-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+#settingsNameInput {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* 설정 저장 버튼 스타일 */
+.settingsSave-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settingsSave-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.settingsSave-button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.settingsSave-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* 작업 페이지 컨테이너 */
+#work-page {
+    position: relative;
+    width: 100%;
+    min-height: 100vh; /* 전체 높이 */
+    background-color: #333;
+    padding-top: 10px; /* 기본 여백: 고정바 + 헤더 높이 */
+}
+
+/* 고정바 스타일 */
+#fixed-bar {
+    position: sticky;
+    top: 60px; /* PC 화면 기준: 헤더 아래 고정 */
+    z-index: 1000;
+    background-color: #333;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 20px 15px;
+    gap: 10px;
+    width: 100%;
+    max-width: 1200px; /* 헤더 범위를 넘지 않도록 */
+    margin: 0 auto; /* 가운데 정렬 */
+    margin-bottom: 40px; /* 고정바 아래 여백 추가 */
+
+}
+
+/* 고정바 내부 요소 스타일 */
+#fixed-bar select,
+#fixed-bar input,
+#fixed-bar button {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: none;
+    font-size: 0.9rem;
+}
+
+#fixed-bar select {
+    max-width: 200px;
+    flex-shrink: 0;
+    background-color: #444;
+    color: white;
+}
+
+#fixed-bar input {
+    flex: 1; /* 이름 입력창 크기 줄이기 */
+    max-width: 150px;
+    background-color: #555;
+    color: white;
+}
+
+#fixed-bar button {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#fixed-bar button:hover {
+    background-color: #0056b3;
+    transform: scale(1.05); /* 살짝 커지는 효과 */
+}
+
+#fixed-bar button:active {
+    background-color: #004085;
+    transform: scale(0.95); /* 클릭 효과 */
+}
+
+#fixed-bar button.delete {
+    background-color: #dc3545;
+}
+
+#fixed-bar button.delete:hover {
+    background-color: #a71d2a;
+}
+
+/* 생성하기 버튼 스타일 */
+#fixed-bar button#generateButton {
+    flex: 2; /* 버튼 크기 늘리기 */
+    font-size: 1rem; /* 글자 크기 키우기 */
+    padding: 12px 20px; /* 패딩 키우기 */
+    background-color: #ff8c00; /* 임팩트 있는 색상 */
+    color: white;
+    font-weight: bold;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* 버튼 그림자 */
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#fixed-bar button#generateButton:hover {
+    background-color: #ff6500; /* 더 밝은 색상 */
+    transform: scale(1.1); /* 크기 확대 */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4); /* 그림자 강조 */
+}
+
+#fixed-bar button#generateButton:active {
+    background-color: #e65100;
+    transform: scale(0.95); /* 클릭 시 축소 */
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2); /* 그림자 감소 */
+}
+
+/* 작업 콘텐츠 스타일 */
+#work-content {
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 20px; /* 고정바와의 간격 확보 */
+    min-height: 200px; /* 최소 높이 */
+}
+
+/* 팝업의 전체 스타일 */
+.guide-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 팝업 콘텐츠 스타일 */
+.guide-popup-content {
+    position: relative;
+    background-color: #333;
+    width: 90%; /* 화면의 90% 너비 */
+    max-width: 800px; /* 최대 너비 제한 */
+    height: 80%; /* 화면의 80% 높이 */
+    max-height: 80%; /* 최대 높이 제한 */
+    border-radius: 8px;
+    overflow: hidden; /* 내부 콘텐츠 잘림 방지 */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 팝업 내부 내용 스크롤 가능 */
+#popupGuideContent {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto; /* 세로 스크롤 추가 */
+}
+
+/* 닫기 버튼 스타일 */
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.5rem;
+    color: #ffffff;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+/* 오버레이 스타일 */
+.guide-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+}
+
+
 
 
 /* 반응형 디자인 */
@@ -724,19 +1623,44 @@ body {
         flex: 1;
     }
 
-    /* 설정 페이지에서만 padding-top 적용 */
-    .settings-page .main-content {
-        padding-top: 40px !important;
-        flex: 1;
+    .settings-toggle-btn {
+        display: block;
     }
 
     .settings-sidebar {
+        position: fixed;
+        top: 0;
+        left: -250px;
+        width: 250px;
+        height: 100%;
+        background-color: #2f2f2f;
+        transition: left 0.3s ease;
+        z-index: 1000;
+        padding-top: 50px; /* 상단 여백 추가 */
+        padding-left: 20px;
+    }
+
+    .settings-sidebar.open {
+        left: 0;
+    }
+
+    .settings-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        padding: 10px 0 0 0;
-        text-align: center;
-        border-right: none;
-        border-bottom: 1px solid #ddd;
-        margin-bottom: 15px;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
+    .settings-overlay.visible {
+        display: block;
+    }
+
+    .settings-container {
+        padding-left: 0; /* 사이드바가 fixed이므로 여백 제거 */
     }
 
     .settings-content {
@@ -816,6 +1740,96 @@ body {
         flex-direction: column;
         align-items: flex-start;
     }
+
+    #fixed-bar {
+        top: 60px; /* 모바일 화면 기준: 햄버거바 아래 고정 */
+        padding: 15px 10px;
+        flex-wrap: wrap; /* 모바일에서는 가로 줄이 길어지면 여러 줄로 감싸기 */
+        z-index: 5; /* 햄버거 메뉴보다 뒤로 */
+    }
+
+    #fixed-bar select,
+    #fixed-bar input,
+    #fixed-bar button {
+        font-size: 0.8rem; /* 요소 크기 줄이기 */
+        padding: 6px 8px;
+    }
+
+    #fixed-bar button#generateButton {
+        flex: 1; /* 모바일에서는 크기 조정 */
+        font-size: 0.9rem;
+        padding: 10px 15px;
+    }
+
+    #fixed-bar input {
+        max-width: 120px; /* 입력창 크기 줄이기 */
+    }
+
+    .guide-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    display: none;
+}
+
+.guide-overlay.visible {
+    display: block;
+}
+
+    .guide-sidebar {
+        position: fixed;
+        left: -250px; /* 사이드바 숨김 상태 */
+        top: 0;
+        width: 250px;
+        height: 100%;
+        background-color: #333;
+        overflow-y: auto;
+        transition: left 0.3s ease; /* 부드러운 애니메이션 */
+        z-index: 1000;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+        padding-top: 50px; /* 상단 여백 추가 */
+        padding-left: 20px;
+    }
+
+    .guide-sidebar.open {
+        left: 0; /* 사이드바 표시 상태 */
+    }
+
+    .guide-sidebar-toggle {
+        position: fixed;
+        top: 75px;
+        left: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        z-index: 1;
+    }
+
+    .guide-content {
+        margin-left: 0; /* 사이드바가 닫힌 상태에서 콘텐츠를 가득 채움 */
+    }
+
+    .settings-toggle-btn {
+        position: fixed;
+        top: 90px;
+        left: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        z-index: 1;
+    }
+
+
 }
 
 @media (min-width: 769px) {
@@ -838,4 +1852,12 @@ body {
     .user-actions {
         margin-left: auto;
     }
+    .guide-sidebar-toggle {
+         display: none;
+    }
+
+    .settings-toggle-btn {
+         display: none;
+    }
+
 }

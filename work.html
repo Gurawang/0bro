@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>작업 페이지</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="work-page" class="container">
+
+        <!-- 고정바 -->
+        <div id="fixed-bar">
+            <select id="savedSettingsDropdown" onchange="updateSelectedSetting()">
+                <option value="" disabled selected>저장된 설정 선택</option>
+            </select>
+            <button id="applyButton" onclick="applySelectedSetting()">적용</button>
+            <button id="deleteButton" onclick="deleteSelectedSetting()">삭제</button>
+            <input type="text" id="settingsNameInput" placeholder="설정 이름 입력">
+            <button id="saveButton" onclick="saveCurrentSettings()">저장</button>
+            <button id="generateButton" onclick="generatePost()">생성하기</button>
+        </div>
+
+        <!-- 1. 나의 블로그 선택 -->
+        <section class="section" id="blog-selection">
+            <h2>1. 나의 블로그 선택</h2>
+
+            <!-- 블로그 글만 생성 항목 -->
+            <div class="blog-item">
+                <span>블로그 글만 생성</span>
+                <label class="toggle-label">
+                    <input type="radio" name="blogToggle" value="manualCreate" onchange="handleToggleChange(this)">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+
+            <!-- 내 블로그 목록 -->
+            <div id="blog-list">
+                <div id="blog-container"></div>
+            </div>
+        </section>
+
+        <hr>
+
+        <!-- 2. 주제 선택 -->
+        <section class="section" id="topic-selection">
+            <div class="section-header">
+                <h2>2. 주제 선택</h2>
+                <a href="https://example-keyword-site.com" target="_blank" class="keyword-link">키워드 검색</a>
+            </div>
+
+            <div class="topic-option">
+                <span>실시간 키워드 채택</span>
+                <label class="toggle-label">
+                    <input type="radio" name="topicToggle" value="autoTrending"
+                        onchange="handleTopicToggleChange(this)">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+
+            <div class="topic-option">
+                <span>주제 직접 입력</span>
+                <label class="toggle-label">
+                    <input type="radio" name="topicToggle" value="manualTopic" onchange="handleTopicToggleChange(this)">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+            <div id="manual-topic-input" class="input-container" style="display: none;">
+                <input type="text" id="topicInput" placeholder="주제를 입력하세요">
+            </div>
+
+            <div class="topic-option">
+                <span>크롤링</span>
+                <label class="toggle-label">
+                    <input type="radio" name="topicToggle" value="rssCrawl" onchange="handleTopicToggleChange(this)">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+            <div id="rss-crawl-input" class="input-container" style="display: none;">
+                <input type="text" id="rssInput" placeholder="크롤링할 주소를 입력하세요">
+            </div>
+        </section>
+
+        <hr>
+
+        <!-- 3. 프롬프트 -->
+        <section class="section" id="prompt-section">
+            <h2>3. 프롬프트</h2>
+
+            <!-- 기본 프롬프트 선택 -->
+            <div class="prompt-option">
+                <span>기본 프롬프트</span>
+                <label class="toggle-label">
+                    <input type="radio" name="promptToggle" value="defaultPrompt"
+                        onchange="handlePromptToggleChange(this)">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+
+            <!-- 저장된 프롬프트 목록 -->
+            <div id="saved-prompt-list-container">
+                <ul id="savedPromptList"></ul>
+            </div>
+
+            <!-- 입력 및 버튼 -->
+            <div id="prompt-editor">
+                <div class="prompt-input-group">
+                    <label for="promptTitleInput">제목:</label>
+                    <input type="text" id="promptTitleInput" placeholder="프롬프트 제목 입력">
+                </div>
+                <div class="prompt-input-group">
+                    <label for="savedPromptContent">프롬프트:</label>
+                    <textarea id="savedPromptContent" placeholder="프롬프트 내용을 입력하세요"></textarea>
+                </div>
+                <div class="button-group">
+                    <button id="savePromptButton" onclick="savePrompt()">저장</button>
+                    <button id="deletePromptButton" onclick="deletePrompt()">삭제</button>
+                </div>
+            </div>
+        </section>
+
+
+
+
+
+        <hr>
+
+        <!-- 4. 스타일 -->
+        <section class="section" id="tone-selection">
+            <h2>4. 스타일</h2>
+
+            <!-- 언어 선택 -->
+            <div id="language-selection" class="language-option">
+                <button class="language-button" data-language="korean" onclick="selectLanguage(this)">한국어</button>
+                <button class="language-button" data-language="english" onclick="selectLanguage(this)">영어</button>
+            </div>
+
+            <!-- 이모티콘 삽입 토글 -->
+            <div id="emoji-toggle" class="toggle-option">
+                <span class="toggle-text">이모티콘 삽입</span>
+                <label class="toggle-label">
+                    <input type="checkbox" id="emojiToggle" onchange="toggleEmoji()">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+
+            <!-- 문장 형식 선택 -->
+            <div id="tone-buttons">
+                <button class="tone-button" data-tone="friendly" onclick="selectTone(this)">친근한</button>
+                <button class="tone-button" data-tone="professional" onclick="selectTone(this)">사무적</button>
+                <button class="tone-button" data-tone="cute" onclick="selectTone(this)">귀여운</button>
+                <button class="tone-button" data-tone="informative" onclick="selectTone(this)">정보 전달</button>
+                <button class="tone-button" data-tone="persuasive" onclick="selectTone(this)">설득력 있는</button>
+                <button class="tone-button" data-tone="creative" onclick="selectTone(this)">창의적</button>
+            </div>
+
+
+        </section>
+
+
+
+        <hr>
+
+        <!-- 5. 이미지 -->
+        <section class="section" id="image-selection">
+            <h2>5. 이미지</h2>
+
+            <!-- 이미지 사용 토글 -->
+            <div class="image-toggle">
+                <span>이미지 사용</span>
+                <label class="toggle-label">
+                    <input type="checkbox" id="useImageToggle" onchange="handleImageToggle(this)">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+
+            <!-- 이미지 옵션 -->
+            <div id="image-options" class="hidden">
+                <!-- 이미지 검색 -->
+                <div class="image-option">
+                    <span>이미지 검색</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="imageOption" value="search" onchange="handleImageOptionChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div id="image-search-options" class="hidden">
+                    <div class="image-search-option">
+                        <span>구글</span>
+                        <label class="toggle-label">
+                            <input type="radio" name="searchEngine" value="google">
+                            <span class="toggle-switch"></span>
+                        </label>
+                    </div>
+                    <div class="image-search-option">
+                        <span>픽사베이</span>
+                        <label class="toggle-label">
+                            <input type="radio" name="searchEngine" value="pixabay">
+                            <span class="toggle-switch"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 직접 이미지 업로드 -->
+                <div class="image-option">
+                    <span>직접 이미지 업로드</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="imageOption" value="upload" onchange="handleImageOptionChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div id="image-upload-options" class="hidden">
+                    <label for="imageUploadInput" class="upload-button">파일 선택</label>
+                    <input type="file" id="imageUploadInput" accept="image/*" multiple
+                        onchange="handleImageUpload(event)" style="display: none;">
+                    <div id="uploadedImages">
+                        <p>선택된 이미지가 없습니다.</p>
+                    </div>
+                </div>
+
+
+                <!-- 이미지 출처 표시 -->
+                <div class="image-option">
+                    <span>이미지 출처 표시</span>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="showImageSourceToggle">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+
+                <!-- 이미지에 텍스트 삽입 -->
+                <div class="image-option">
+                    <span>이미지에 텍스트 삽입</span>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="insertTextToggle" onchange="handleTextToggle(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div id="text-input-container" class="hidden">
+                    <textarea id="imageTextInput" placeholder="이미지에 삽입할 텍스트를 입력하세요"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <hr>
+
+        <!-- 6. AI 선택 -->
+        <section class="section" id="ai-selection">
+            <h2>6. AI 선택</h2>
+            <div id="ai-options">
+                <div class="ai-option">
+                    <span>GPT 3.5 Turbo</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="aiToggle" value="gpt-3.5-turbo" onchange="handleAiToggleChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div class="ai-option">
+                    <span>GPT 4</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="aiToggle" value="gpt-4" onchange="handleAiToggleChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div class="ai-option">
+                    <span>GPT 4 Turbo</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="aiToggle" value="gpt-4-turbo" onchange="handleAiToggleChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div class="ai-option">
+                    <span>Gemini 1</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="aiToggle" value="gemini-1" onchange="handleAiToggleChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div class="ai-option">
+                    <span>Gemini 2</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="aiToggle" value="gemini-2" onchange="handleAiToggleChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+                <div class="ai-option">
+                    <span>Gemini Advanced</span>
+                    <label class="toggle-label">
+                        <input type="radio" name="aiToggle" value="gemini-advanced"
+                            onchange="handleAiToggleChange(this)">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+
+        <hr>
+
+        <!-- 7. 포스팅 -->
+        <section class="section" id="auto-posting">
+            <h2>7. 포스팅</h2>
+
+            <!-- 연속 포스팅 사용 옵션 -->
+            <div class="auto-posting-toggle">
+                <span>연속 포스팅 사용</span>
+                <label class="toggle-label">
+                    <input type="checkbox" id="useAutoPosting" onchange="handlePostingOptionToggle(this, 'auto')">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+
+            <!-- 연속 포스팅 옵션 -->
+            <div id="auto-posting-options" class="hidden">
+                <div id="time-buttons" class="time-button-group">
+                    <button class="time-button" data-time="180" onclick="selectPostingInterval(this)">3시간</button>
+                    <button class="time-button" data-time="360" onclick="selectPostingInterval(this)">6시간</button>
+                    <button class="time-button" data-time="720" onclick="selectPostingInterval(this)">12시간</button>
+                    <button class="time-button" data-time="1440" onclick="selectPostingInterval(this)">24시간</button>
+                </div>
+
+                <!-- 직접 입력 옵션 -->
+                <div class="custom-interval-group">
+                    <button class="custom-button" onclick="selectCustomInput()">직접 입력</button>
+                    <input type="number" id="customInterval" placeholder="분 단위로 입력" min="1">
+                    <span>분</span>
+                </div>
+            </div>
+
+            <!-- 포스팅 예약 옵션 -->
+            <div class="auto-posting-toggle">
+                <span>포스팅 예약</span>
+                <label class="toggle-label">
+                    <input type="checkbox" id="useScheduledPosting"
+                        onchange="handlePostingOptionToggle(this, 'schedule')">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+
+            <!-- 포스팅 예약 옵션 -->
+            <div id="schedule-posting-options" class="hidden">
+                <div class="schedule-input-group">
+                    <label for="scheduleYear">년</label>
+                    <input type="number" id="scheduleYear" placeholder="2024" min="2024" max="2100">
+                </div>
+                <div class="schedule-input-group">
+                    <label for="scheduleMonth">월</label>
+                    <input type="number" id="scheduleMonth" placeholder="1" min="1" max="12">
+                </div>
+                <div class="schedule-input-group">
+                    <label for="scheduleDay">일</label>
+                    <input type="number" id="scheduleDay" placeholder="1" min="1" max="31">
+                </div>
+                <div class="schedule-input-group">
+                    <label for="scheduleHour">시</label>
+                    <input type="number" id="scheduleHour" placeholder="0" min="0" max="23">
+                </div>
+                <div class="schedule-input-group">
+                    <label for="scheduleMinute">분</label>
+                    <input type="number" id="scheduleMinute" placeholder="0" min="0" max="59">
+                </div>
+            </div>
+        </section>
+
+
+
+
+
+        <hr>
+
+
+        <!-- 8. 광고 삽입 -->
+        <section class="section" id="ads-insertion">
+            <h2>8. 광고 삽입</h2>
+
+            <!-- 쿠팡 파트너스 옵션 -->
+            <div class="ads-option">
+                <span>쿠팡 파트너스 광고 삽입</span>
+                <label class="toggle-label">
+                    <input type="checkbox" id="useCoupangAds" onchange="handleAdsToggle('coupang')">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+            <div id="coupang-link-input" class="hidden">
+                <input type="text" id="coupangLink" placeholder="쿠팡 파트너스 링크를 입력하세요">
+            </div>
+
+            <!-- 에드센스 옵션 -->
+            <div class="ads-option">
+                <span>에드센스 광고 삽입</span>
+                <label class="toggle-label">
+                    <input type="checkbox" id="useAdSenseAds" onchange="handleAdsToggle('adsense')">
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+        </section>
+
+
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        loadRegisteredBlogs();
+    </script>
+</body>
+
+</html>

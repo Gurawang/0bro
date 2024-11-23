@@ -1,5 +1,9 @@
 <!-- 설정 페이지의 기본 HTML 구조 -->
 <div class="settings-container">
+
+    <!-- 모바일 토글 버튼 -->
+    <button class="settings-toggle-btn" onclick="toggleSettingsSidebar()">☰ 메뉴</button>
+
     <!-- 왼쪽 사이드바 -->
     <div class="settings-sidebar">
         <ul>
@@ -30,6 +34,9 @@
             </li>
         </ul>
     </div>
+
+    <!-- 오버레이 -->
+    <div class="settings-overlay" onclick="closeSettingsSidebar()"></div>
 
     <!-- 오른쪽 설정 콘텐츠 -->
     <div class="settings-content" id="settingsContent">

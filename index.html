@@ -21,10 +21,11 @@
                     <img src="logo.png" alt="홈 아이콘" class="home-icon">
                 </a>
             </div>
-            <a href="/work" onclick="requireLogin(event, '/work')">작업</a>
-            <a href="/docs" onclick="requireLogin(event, '/docs')">문서</a>
-            <a href="/settings" onclick="requireLogin(event, '/settings')">설정</a>
+            <a href="/work" onclick="requireLogin(event, '/work')">블로그생성</a>
+            <a href="/docs" onclick="requireLogin(event, '/docs')">나의작업</a>
+            <a href="/settings" onclick="requireLogin(event, '/settings')">설정하기</a>
             <a href="/guide" onclick="navigateTo(event, '/guide')">가이드</a>
+            <a href="/etc" onclick="navigateTo(event, '/etc')">홈페이지제작</a>
             <a href="/payment" onclick="requireLogin(event, '/payment')">결제</a>
         </nav>
         <div class="user-actions"></div>
@@ -49,9 +50,17 @@
 
     <!-- 콘텐츠 영역 -->
     <main id="content" class="main-content">
-        <h1>Welcome to 0Bro</h1>
-        <p>프로그램 또는 회사 소개 페이지!</p>
     </main>
+
+    <div id="guidePopup" class="guide-popup" style="display: none;">
+        <div class="guide-popup-overlay" onclick="closeGuidePopup()"></div>
+        <div class="guide-popup-content">
+            <span class="close-button" onclick="closeGuidePopup()">&times;</span>
+            <div id="popupGuideContent">
+                <!-- 가이드 내용이 동적으로 로드됩니다 -->
+            </div>
+        </div>
+    </div>
 
     <!-- 푸터 -->
     <footer class="footer">
