@@ -21,7 +21,7 @@ const db = admin.firestore();
 
 // 미들웨어 설정
 app.use(cors({ origin: ['https://www.dokdolove.com'], optionsSuccessStatus: 200 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // 요청 본문 크기를 최대 10MB로 설정
 
 // 공통 함수: Firestore에서 사용자 데이터 로드
 async function getUserData(userId) {
@@ -45,21 +45,16 @@ async function getWordPressCredentials(userId) {
 app.post('/proxy/wp-post', async (req, res) => {
     const { userId, postData } = req.body;
 
-    console.log("WP POST 요청 데이터:", req.body); // 요청 데이터 확인
-
     if (!userId || !postData) {
-        console.error("요청 데이터 누락:", req.body);
-        return res.status(400).json({ error: '요청 데이터가 누락되었습니다.' });
+        return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
     }
 
     try {
-        const { appPassword, siteUrl, username } = await getWordPressCredentials(userId);
-
-        console.log("WordPress 크리덴셜:", { siteUrl, username }); // Firestore 데이터 확인
+        const userData = await getUserData(userId);
+        const { siteUrl, username, appPassword } = userData;
 
         if (!siteUrl || !username || !appPassword) {
-            console.error("WordPress 크리덴셜 누락:", { siteUrl, username, appPassword });
-            return res.status(400).json({ error: 'WordPress 크리덴셜이 설정되지 않았습니다.' });
+            return res.status(400).json({ success: false, error: '워드프레스 크리덴셜이 설정되지 않았습니다.' });
         }
 
         const response = await axios.post(
@@ -77,18 +72,17 @@ app.post('/proxy/wp-post', async (req, res) => {
             }
         );
 
-        console.log("WordPress API 응답:", response.data); // API 응답 데이터 확인
-        res.status(response.status).json({ success: true, data: response.data });
+        res.json({ success: true, data: response.data });
     } catch (error) {
         console.error('워드프레스 포스팅 오류:', error.message);
         if (error.response) {
-            console.error('응답 데이터:', error.response.data);
             res.status(error.response.status).json({ success: false, error: error.response.data });
         } else {
-            res.status(500).json({ success: false, error: '워드프레스 포스팅 오류' });
+            res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
         }
     }
 });
+
 
 
 

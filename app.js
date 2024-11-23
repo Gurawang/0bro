@@ -2301,7 +2301,9 @@ async function generatePost() {
         console.log("블로그 인증 정보:", blogCredentials);
 
         // 2. 주제 생성
-        const postTopic = await resolvePostTopic(settings);
+        const postTopic = settings.topicSelection === "manualTopic" 
+            ? settings.manualTopic 
+            : await resolvePostTopic(settings);
         if (!postTopic) {
             alert("주제를 설정하세요.");
             return;
@@ -2326,7 +2328,7 @@ async function generatePost() {
 
         // 6. 최종 포스팅 데이터 생성
         const postData = {
-            title: `Generated Post: ${postTopic}`,
+            title: postTopic,
             content,
             images,
             ads,
@@ -2512,22 +2514,18 @@ async function resolvePostTopic(settings) {
 }
 
 // 프롬프트 생성
-async function resolvePrompt(userId, settings, postTopic) {
+async function resolvePrompt(userId, settings, topic) {
     if (settings.promptSelection === "defaultPrompt") {
-        return defaultPrompt.replace("{{topic}}", postTopic);
+        return `다음 주제에 대한 블로그 글을 작성하세요: ${topic}`;
     } else {
-        const promptDoc = await db
-            .collection("settings")
-            .doc(userId)
-            .collection("prompts")
-            .doc(settings.promptSelection)
-            .get();
+        const promptDoc = await db.collection("settings").doc(userId).collection("prompts").doc(settings.promptSelection).get();
         if (promptDoc.exists) {
-            return promptDoc.data().content.replace("{{topic}}", postTopic);
+            return promptDoc.data().content.replace("{{topic}}", topic);
         }
+        return null;
     }
-    return null;
 }
+
 
 // 이미지 처리
 async function processImages(settings, postTopic) {
