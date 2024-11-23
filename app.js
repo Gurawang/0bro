@@ -2374,6 +2374,51 @@ async function generatePost() {
     }
 }
 
+async function updatePostHistory(userId, postData) {
+    try {
+        // Firestore에 작업 내역 저장
+        const historyRef = db.collection("postHistory").doc(userId).collection("posts");
+        await historyRef.add({
+            title: postData.title,
+            content: postData.content,
+            images: postData.images,
+            ads: postData.ads,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        console.log("작업 히스토리에 저장되었습니다.");
+    } catch (error) {
+        console.error("작업 히스토리 업데이트 중 오류:", error);
+        throw new Error("작업 히스토리 업데이트에 실패했습니다.");
+    }
+}
+
+async function loadPostHistory(userId) {
+    try {
+        const historyRef = db.collection("postHistory").doc(userId).collection("posts").orderBy("timestamp", "desc");
+        const snapshot = await historyRef.get();
+
+        const historyContainer = document.getElementById("postHistoryContainer");
+        historyContainer.innerHTML = ""; // 기존 내용 초기화
+
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const postElement = document.createElement("div");
+            postElement.innerHTML = `
+                <h3>${data.title}</h3>
+                <p>${data.content.substring(0, 100)}...</p>
+                <small>${new Date(data.timestamp.seconds * 1000).toLocaleString()}</small>
+            `;
+            historyContainer.appendChild(postElement);
+        });
+
+        console.log("포스팅 내역 로드 완료");
+    } catch (error) {
+        console.error("포스팅 내역 로드 중 오류:", error);
+    }
+}
+
+
 const aiConfig = {
     gpt: {
         apiUrl: "https://api.openai.com/v1/chat/completions",
