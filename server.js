@@ -41,11 +41,11 @@ async function getWordPressCredentials(userId) {
     return doc.data();
 }
 
-// Gemini API 프록시
+// Gemini 텍스트 생성 프록시
 app.post('/proxy/gemini', async (req, res) => {
-    const { userId, requestData } = req.body;
+    const { userId, prompt, model, temperature, top_p, max_output_tokens } = req.body;
 
-    if (!userId || !requestData) {
+    if (!userId || !prompt || !model) {
         return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
     }
 
@@ -58,8 +58,14 @@ app.post('/proxy/gemini', async (req, res) => {
         }
 
         const response = await axios.post(
-            'https://generativelanguage.googleapis.com/v1beta/generateText',
-            requestData,
+            `https://generativelanguage.googleapis.com/v1beta/generateText`,
+            {
+                model,
+                prompt,
+                temperature: temperature || 0.7,
+                top_p: top_p || 0.9,
+                max_output_tokens: max_output_tokens || 1000,
+            },
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -68,16 +74,16 @@ app.post('/proxy/gemini', async (req, res) => {
             }
         );
 
-        res.status(response.status).json({ success: true, data: response.data });
+        res.status(200).json({ success: true, data: response.data });
     } catch (error) {
-        console.error('Gemini API 호출 오류:', error.message);
-        if (error.response) {
-            res.status(error.response.status).json({ success: false, error: error.response.data });
-        } else {
-            res.status(500).json({ success: false, error: 'Gemini API 호출 실패' });
-        }
+        console.error('Gemini API 호출 오류:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({
+            success: false,
+            error: error.response?.data || 'Gemini API 호출 중 서버 오류',
+        });
     }
 });
+
 
 
 

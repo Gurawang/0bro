@@ -2370,10 +2370,16 @@ async function handlePostingOptions(settings, postData, blogCredentials) {
 // AI 콘텐츠 생성
 async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) {
     try {
+        // 현재 사용자 ID 확인
         const userId = auth.currentUser?.uid;
+        if (!userId) {
+            throw new Error("사용자 ID를 찾을 수 없습니다. 로그인 상태를 확인하세요.");
+        }
+
+        // Firestore에서 사용자 데이터 로드
         const userDoc = await db.collection("settings").doc(userId).get();
         if (!userDoc.exists) {
-            throw new Error("사용자 데이터를 찾을 수 없습니다.");
+            throw new Error("사용자 데이터를 Firestore에서 찾을 수 없습니다.");
         }
 
         const userData = userDoc.data();
@@ -2385,24 +2391,26 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             throw new Error("API 키 또는 모델 정보가 누락되었습니다.");
         }
 
+        // 요청 데이터 생성
         const requestData = aiVersion.startsWith("gpt")
             ? {
                 model,
                 messages: [
                     { role: "system", content: "당신은 훌륭한 블로그 글 작성가입니다." },
-                    { role: "user", content: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}` }
+                    { role: "user", content: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}` },
                 ],
                 max_tokens: 1000,
                 temperature: 0.7,
             }
             : {
-                model: `models/${model}`,
+                model: `models/${model}`, // Gemini 모델 이름 형식
                 prompt: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}`,
                 temperature: 0.7,
                 top_p: 0.9,
                 max_output_tokens: 1000,
             };
 
+        // API 호출
         const response = await fetch(
             aiVersion.startsWith("gpt") ? selectedConfig.apiUrl : `${PROXY_SERVER_URL}/proxy/gemini`,
             {
@@ -2411,7 +2419,9 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                     "Content-Type": "application/json",
                     Authorization: aiVersion.startsWith("gpt") ? `Bearer ${apiKey}` : undefined,
                 },
-                body: JSON.stringify(aiVersion.startsWith("gpt") ? requestData : { userId, requestData }),
+                body: JSON.stringify(
+                    aiVersion.startsWith("gpt") ? requestData : { userId, apiKey, requestData }
+                ),
             }
         );
 
@@ -2421,6 +2431,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             throw new Error(`AI 요청 실패: ${errorData.message || response.statusText}`);
         }
 
+        // 응답 데이터 파싱
         const data = await response.json();
         return aiVersion.startsWith("gpt")
             ? data.choices?.[0]?.message?.content.trim()
@@ -2430,6 +2441,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         throw error;
     }
 }
+
 
 
 
