@@ -2264,14 +2264,17 @@ const aiConfig = {
         }
     },
     gemini: {
-        apiUrl: "https://api.gemini.com/v1/text-generation",
+        apiUrl: "https://generativelanguage.googleapis.com/v1beta/models", // 기본 엔드포인트
         models: {
             "gemini-1": "gemini-1",
             "gemini-2": "gemini-2",
-            "gemini-advanced": "gemini-advanced"
-        }
+            "gemini-advanced": "gemini-advanced",
+            "gemini-1.5-flash": "gemini-1.5-flash"
+        },
+        generateEndpoint: "https://generativelanguage.googleapis.com/v1beta/generateText" // 텍스트 생성 엔드포인트
     }
 };
+
 
 // 환경 변수에서 프록시 서버 URL 가져오기
 const PROXY_SERVER_URL = 'https://proxy.dokdolove.com'; // 환경 변수로 설정 가능
@@ -2377,6 +2380,11 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         const selectedConfig = aiVersion.startsWith("gpt") ? aiConfig.gpt : aiConfig.gemini;
         const model = selectedConfig.models[aiVersion];
 
+        if (!apiKey || !model) {
+            throw new Error("API 키 또는 모델 정보가 누락되었습니다.");
+        }
+
+        // Gemini API 요청 형식
         const requestData = aiVersion.startsWith("gpt")
             ? {
                 model,
@@ -2388,36 +2396,44 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                 temperature: 0.7,
             }
             : {
-                model,
+                model: `models/${model}`, // Gemini 모델 형식으로 전달
                 prompt: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}`,
-                max_tokens: 1000,
                 temperature: 0.7,
+                top_p: 0.9,
+                max_output_tokens: 1000,
             };
 
-        const response = await fetch(selectedConfig.apiUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify(requestData),
-        });
+        const response = await fetch(
+            aiVersion.startsWith("gpt")
+                ? selectedConfig.apiUrl
+                : selectedConfig.generateEndpoint, // Gemini의 생성 엔드포인트 사용
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify(requestData),
+            }
+        );
+
 
         if (!response.ok) {
             const errorData = await response.json();
             console.error("AI API 오류:", errorData);
-            throw new Error("AI 요청 실패");
+            throw new Error(`AI 요청 실패: ${errorData.message || response.statusText}`);
         }
 
         const data = await response.json();
         return aiVersion.startsWith("gpt")
             ? data.choices?.[0]?.message?.content.trim()
-            : data.choices?.[0]?.text.trim() || "AI 콘텐츠 생성 실패";
+            : data.candidates?.[0]?.output.trim() || "AI 콘텐츠 생성 실패";
     } catch (error) {
         console.error("AI 콘텐츠 생성 중 오류:", error);
         throw error;
     }
 }
+
 
 // 블로그 포스팅
 async function postToBlog(blogSelection, blogCredentials, postData) {
