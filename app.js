@@ -2402,26 +2402,15 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
     console.log("이모티콘 사용 여부:", useEmoji);
     console.log("AI 버전:", aiVersion);
 
-    console.log("OpenAI API 키:", aiConfig.gpt.apiKey);
-    console.log("Gemini API 키:", aiConfig.gemini.apiKey);
-    console.log("API 호출 URL:", selectedConfig.apiUrl);
-    console.log("Authorization 헤더:", `Bearer ${apiKey}`);
-
-
-
     try {
-        // AI 버전 식별 및 설정
-        const isGpt = aiVersion.startsWith("gpt");
-        const selectedConfig = isGpt ? aiConfig.gpt : aiConfig.gemini;
-        const apiKey = selectedConfig.apiKey;
-
-        if (!apiKey) {
-            throw new Error(`${isGpt ? "OpenAI" : "Gemini"} API 키가 설정되지 않았습니다.`);
-        }
+        // AI 버전 식별 및 설정 선택
+        const selectedConfig = aiVersion.startsWith("gpt")
+            ? aiConfig.gpt
+            : aiConfig.gemini;
 
         const model = selectedConfig.models[aiVersion];
         if (!model) {
-            throw new Error(`AI 버전 "${aiVersion}"에 대한 모델 설정이 없습니다.`);
+            throw new Error(`AI 버전 "${aiVersion}"에 대한 설정이 없습니다.`);
         }
 
         const requestData = {
@@ -2434,7 +2423,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                 ${prompt}
             `,
             max_tokens: 1000,
-            temperature: 0.7
+            temperature: 0.7,
         };
 
         console.log("API 요청 데이터:", requestData);
@@ -2444,9 +2433,9 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${apiKey}`
+                Authorization: `Bearer ${selectedConfig.apiKey}`,
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(requestData),
         });
 
         if (!response.ok) {
@@ -2464,6 +2453,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         throw error;
     }
 }
+
 
 
 
