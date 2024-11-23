@@ -2402,6 +2402,13 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
     console.log("이모티콘 사용 여부:", useEmoji);
     console.log("AI 버전:", aiVersion);
 
+    console.log("OpenAI API 키:", aiConfig.gpt.apiKey);
+    console.log("Gemini API 키:", aiConfig.gemini.apiKey);
+    console.log("API 호출 URL:", selectedConfig.apiUrl);
+    console.log("Authorization 헤더:", `Bearer ${apiKey}`);
+
+
+
     try {
         // AI 버전 식별 및 설정
         const isGpt = aiVersion.startsWith("gpt");
