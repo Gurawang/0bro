@@ -2264,7 +2264,7 @@ const aiConfig = {
         }
     },
     gemini: {
-        apiUrl: "https://api.gemini.com/v1/generate",
+        apiUrl: "https://api.gemini.com/v1/text-generation",
         models: {
             "gemini-1": "gemini-1",
             "gemini-2": "gemini-2",
@@ -2323,13 +2323,14 @@ async function generatePost() {
         console.log("생성된 포스팅 콘텐츠:", content);
 
         // 5. 이미지 및 광고 처리
-        const images = await processImages(settings, postTopic);
+        const imagesHTML = images.length > 0 ? generateImageHTML(images) : "";
+        const finalContent = `${content}\n\n${imagesHTML}`;
         const ads = await generateAds(settings);
 
         // 6. 최종 포스팅 데이터 생성
         const postData = {
             title: postTopic,
-            content,
+            content: finalContent,
             images,
             ads,
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -2367,6 +2368,10 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
     try {
         const userId = auth.currentUser?.uid;
         const userDoc = await db.collection("settings").doc(userId).get();
+        if (!userDoc.exists) {
+            throw new Error("사용자 데이터를 찾을 수 없습니다.");
+        }
+
         const userData = userDoc.data();
         const apiKey = aiVersion.startsWith("gpt") ? userData.openAIKey : userData.geminiKey;
         const selectedConfig = aiVersion.startsWith("gpt") ? aiConfig.gpt : aiConfig.gemini;
@@ -2398,10 +2403,16 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             body: JSON.stringify(requestData),
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("AI API 오류:", errorData);
+            throw new Error("AI 요청 실패");
+        }
+
         const data = await response.json();
         return aiVersion.startsWith("gpt")
             ? data.choices?.[0]?.message?.content.trim()
-            : data.choices?.[0]?.text.trim();
+            : data.choices?.[0]?.text.trim() || "AI 콘텐츠 생성 실패";
     } catch (error) {
         console.error("AI 콘텐츠 생성 중 오류:", error);
         throw error;
@@ -2560,6 +2571,7 @@ async function resolvePrompt(userId, settings, topic) {
 // 이미지 처리
 async function processImages(settings, postTopic) {
     let images = [];
+
     if (settings.useImage) {
         if (settings.imageOption === "search") {
             if (settings.imageSearchEngine === "google") {
@@ -2568,20 +2580,31 @@ async function processImages(settings, postTopic) {
                 images = await searchPixabayImages(postTopic);
             }
         } else if (settings.imageOption === "upload") {
-            images = settings.uploadedImages;
+            images = settings.uploadedImages || [];
         }
+
         if (settings.showImageSource) {
             images = images.map((img) => ({
-                url: img,
+                url: img.url || img,
                 source: `출처: ${img.source || "알 수 없음"}`,
             }));
         }
+
         if (settings.insertTextToggle) {
             images = await insertTextIntoImages(images, settings.insertedText);
         }
     }
+
     return images;
 }
+
+// 이미지 HTML 생성
+function generateImageHTML(images) {
+    return images
+        .map((img) => `<img src="${img.url}" alt="이미지" style="max-width:100%; height:auto;">${img.source ? `<p>${img.source}</p>` : ""}`)
+        .join("\n");
+}
+
 
 // 광고 생성
 async function generateAds(settings) {
