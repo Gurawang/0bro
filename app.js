@@ -2384,7 +2384,6 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             throw new Error("API 키 또는 모델 정보가 누락되었습니다.");
         }
 
-        // Gemini API 요청 형식
         const requestData = aiVersion.startsWith("gpt")
             ? {
                 model,
@@ -2396,7 +2395,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                 temperature: 0.7,
             }
             : {
-                model: `models/${model}`, // Gemini 모델 형식으로 전달
+                model: `models/${model}`,
                 prompt: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}`,
                 temperature: 0.7,
                 top_p: 0.9,
@@ -2404,19 +2403,16 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             };
 
         const response = await fetch(
-            aiVersion.startsWith("gpt")
-                ? selectedConfig.apiUrl
-                : selectedConfig.generateEndpoint, // Gemini의 생성 엔드포인트 사용
+            aiVersion.startsWith("gpt") ? selectedConfig.apiUrl : `${PROXY_SERVER_URL}/proxy/gemini`,
             {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${apiKey}`,
+                    Authorization: aiVersion.startsWith("gpt") ? `Bearer ${apiKey}` : undefined,
                 },
-                body: JSON.stringify(requestData),
+                body: JSON.stringify(aiVersion.startsWith("gpt") ? requestData : { userId, requestData }),
             }
         );
-
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -2433,6 +2429,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         throw error;
     }
 }
+
 
 
 // 블로그 포스팅

@@ -41,6 +41,45 @@ async function getWordPressCredentials(userId) {
     return doc.data();
 }
 
+// Gemini API 프록시
+app.post('/proxy/gemini', async (req, res) => {
+    const { userId, requestData } = req.body;
+
+    if (!userId || !requestData) {
+        return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
+    }
+
+    try {
+        const userData = await getUserData(userId);
+        const apiKey = userData.geminiKey;
+
+        if (!apiKey) {
+            return res.status(400).json({ success: false, error: 'Gemini API 키가 설정되지 않았습니다.' });
+        }
+
+        const response = await axios.post(
+            'https://generativelanguage.googleapis.com/v1beta/generateText',
+            requestData,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${apiKey}`,
+                },
+            }
+        );
+
+        res.status(response.status).json({ success: true, data: response.data });
+    } catch (error) {
+        console.error('Gemini API 호출 오류:', error.message);
+        if (error.response) {
+            res.status(error.response.status).json({ success: false, error: error.response.data });
+        } else {
+            res.status(500).json({ success: false, error: 'Gemini API 호출 실패' });
+        }
+    }
+});
+
+
 // 워드프레스 블로그 포스팅 프록시
 app.post('/proxy/wp-post', async (req, res) => {
     const { userId, blogUrl, username, appPassword, postData } = req.body;
