@@ -43,13 +43,18 @@ async function getWordPressCredentials(userId) {
 
 // Gemini 프록시 엔드포인트
 app.post('/proxy/gemini', async (req, res) => {
-    const { userId, apiKey, requestData } = req.body;
+    const { userId, requestData } = req.body;
 
-    if (!userId || !apiKey || !requestData) {
+    if (!userId || !requestData) {
         return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
     }
 
     try {
+        const apiKey = await getGeminiApiKey(userId); // 사용자 API 키 로드
+        if (!apiKey) {
+            return res.status(403).json({ success: false, error: 'API 키가 설정되지 않았습니다.' });
+        }
+
         const response = await axios.post(
             "https://generativelanguage.googleapis.com/v1beta/generateText",
             requestData,
@@ -74,6 +79,12 @@ app.post('/proxy/gemini', async (req, res) => {
         }
     }
 });
+
+// Helper: 사용자 Gemini API 키 로드
+async function getGeminiApiKey(userId) {
+    const userDoc = await db.collection('settings').doc(userId).get();
+    return userDoc.exists ? userDoc.data()?.geminiKey : null;
+}
 
 
 

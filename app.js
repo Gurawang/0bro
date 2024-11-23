@@ -2411,19 +2411,23 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
 
         // 프록시 서버에 요청 전송
         const response = await fetch(
-            aiVersion.startsWith("gpt") ? selectedConfig.apiUrl : `${PROXY_SERVER_URL}/proxy/gemini`,
+            aiVersion.startsWith("gpt")
+                ? selectedConfig.apiUrl
+                : `${PROXY_SERVER_URL}/proxy/gemini`,
             {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    ...(aiVersion.startsWith("gpt") && { Authorization: `Bearer ${apiKey}` }), // GPT의 경우 Authorization 추가
                 },
-                body: JSON.stringify({
-                    userId,
-                    apiKey,
-                    requestData, // 요청 데이터 포함
-                }),
+                body: JSON.stringify(
+                    aiVersion.startsWith("gpt")
+                        ? requestData // GPT는 OpenAI API로 직접 요청
+                        : { userId, requestData } // Gemini는 프록시 서버로 요청
+                ),
             }
         );
+
 
         if (!response.ok) {
             const errorData = await response.json();
