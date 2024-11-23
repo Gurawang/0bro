@@ -2403,7 +2403,30 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
     console.log("AI 버전:", aiVersion);
 
     try {
-        // AI 버전 식별 및 설정 선택
+        // Firestore에서 API 키 가져오기
+        const userId = auth.currentUser?.uid;
+        if (!userId) {
+            throw new Error("로그인하지 않았습니다.");
+        }
+
+        const userDoc = await db.collection("settings").doc(userId).get();
+        if (!userDoc.exists) {
+            throw new Error("사용자 데이터가 Firestore에 존재하지 않습니다.");
+        }
+
+        const userData = userDoc.data();
+        let apiKey;
+        if (aiVersion.startsWith("gpt")) {
+            apiKey = userData.openaiApiKey; // Firestore에서 OpenAI API 키
+        } else if (aiVersion.startsWith("gemini")) {
+            apiKey = userData.geminiApiKey; // Firestore에서 Gemini API 키
+        }
+
+        if (!apiKey) {
+            throw new Error(`AI 버전에 대한 API 키가 설정되지 않았습니다: ${aiVersion}`);
+        }
+
+        // AI 버전 설정
         const selectedConfig = aiVersion.startsWith("gpt")
             ? aiConfig.gpt
             : aiConfig.gemini;
@@ -2433,7 +2456,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${selectedConfig.apiKey}`,
+                Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify(requestData),
         });
@@ -2453,9 +2476,6 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         throw error;
     }
 }
-
-
-
 
 
 
