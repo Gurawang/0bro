@@ -52,6 +52,10 @@ async function getUserData(userId) {
 app.post('/proxy/wp-post', async (req, res) => {
     const { userId, postData } = req.body;
 
+    if (!userId || !postData) {
+        return res.status(400).json({ error: '요청 데이터가 누락되었습니다.' });
+    }
+
     try {
         const userData = await getUserData(userId);
         const { blogUrl, username, password } = userData.wordpressCredentials || {};
@@ -78,13 +82,22 @@ app.post('/proxy/wp-post', async (req, res) => {
         res.status(response.status).json({ success: true, data: response.data });
     } catch (error) {
         console.error('워드프레스 포스팅 오류:', error.message);
-        res.status(500).json({ success: false, error: '워드프레스 포스팅 오류' });
+        if (error.response) {
+            console.error('응답 데이터:', error.response.data);
+            res.status(error.response.status).json({ success: false, error: error.response.data });
+        } else {
+            res.status(500).json({ success: false, error: '워드프레스 포스팅 오류' });
+        }
     }
 });
 
 // 구글 블로그 포스팅 프록시
 app.post('/proxy/google-blog', async (req, res) => {
     const { userId, postData } = req.body;
+
+    if (!userId || !postData) {
+        return res.status(400).json({ error: '요청 데이터가 누락되었습니다.' });
+    }
 
     try {
         const userData = await getUserData(userId);
@@ -112,7 +125,12 @@ app.post('/proxy/google-blog', async (req, res) => {
         res.status(response.status).json({ success: true, data: response.data });
     } catch (error) {
         console.error('구글 블로그 포스팅 오류:', error.message);
-        res.status(500).json({ success: false, error: '구글 블로그 포스팅 오류' });
+        if (error.response) {
+            console.error('응답 데이터:', error.response.data);
+            res.status(error.response.status).json({ success: false, error: error.response.data });
+        } else {
+            res.status(500).json({ success: false, error: '구글 블로그 포스팅 오류' });
+        }
     }
 });
 
