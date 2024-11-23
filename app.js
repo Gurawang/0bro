@@ -2373,10 +2373,10 @@ async function generatePost() {
         alert("포스팅 생성 중 오류가 발생했습니다.");
     }
 }
+
 const aiConfig = {
     gpt: {
-        apiUrl: "https://api.openai.com/v1/completions",
-        apiKey: localStorage.getItem("openaiApiKey"), // 초기화 시 로드
+        apiUrl: "https://api.openai.com/v1/chat/completions",
         models: {
             "gpt-3.5-turbo": "gpt-3.5-turbo",
             "gpt-4": "gpt-4",
@@ -2385,7 +2385,6 @@ const aiConfig = {
     },
     gemini: {
         apiUrl: "https://api.gemini.com/v1/generate",
-        apiKey: localStorage.getItem("geminiApiKey"), // 초기화 시 로드
         models: {
             "gemini-1": "gemini-1",
             "gemini-2": "gemini-2",
@@ -2393,6 +2392,7 @@ const aiConfig = {
         }
     }
 };
+
 
 async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) {
     console.log("포스팅 콘텐츠 생성 시작...");
@@ -2429,6 +2429,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
 
         if (!apiKey) {
             console.error(`Firestore에서 ${aiVersion}에 대한 API 키가 없습니다.`);
+            console.error("로드된 사용자 데이터:", userData);
             throw new Error(`AI 버전에 대한 API 키가 설정되지 않았습니다: ${aiVersion}`);
         }
 
@@ -2443,7 +2444,23 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             throw new Error(`AI 버전 "${aiVersion}"에 대한 설정이 없습니다.`);
         }
 
-        const requestData = {
+        const requestData = aiVersion.startsWith("gpt")
+        ? {
+            model: model,
+            messages: [
+                { role: "system", content: "당신은 훌륭한 블로그 글 작성가입니다." },
+                { role: "user", content: `
+                    언어: ${language}
+                    문체: ${tone}
+                    ${useEmoji ? "이모티콘 포함" : ""}
+                    내용:
+                    ${prompt}
+                `}
+            ],
+            max_tokens: 1000,
+            temperature: 0.7,
+        }
+        : {
             model: model,
             prompt: `
                 언어: ${language}
@@ -2455,6 +2472,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             max_tokens: 1000,
             temperature: 0.7,
         };
+
 
         console.log("API 요청 데이터:", requestData);
 
@@ -2477,7 +2495,10 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         const data = await response.json();
         console.log("API 응답 데이터:", data);
 
-        return data.choices?.[0]?.text.trim() || "콘텐츠 생성에 실패했습니다.";
+        return aiVersion.startsWith("gpt")
+        ? data.choices?.[0]?.message?.content.trim()
+        : data.choices?.[0]?.text.trim() || "콘텐츠 생성에 실패했습니다.";
+
     } catch (error) {
         console.error("포스팅 콘텐츠 생성 중 오류:", error);
         throw error;
