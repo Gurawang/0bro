@@ -2420,10 +2420,10 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
 
         let apiKey;
         if (aiVersion.startsWith("gpt")) {
-            apiKey = userData.openaiApiKey;
+            apiKey = userData.openAIKey;
             console.log("GPT API 키:", apiKey);
         } else if (aiVersion.startsWith("gemini")) {
-            apiKey = userData.geminiApiKey;
+            apiKey = userData.geminiKey;
             console.log("Gemini API 키:", apiKey);
         }
 
