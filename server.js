@@ -43,22 +43,23 @@ async function getWordPressCredentials(userId) {
 
 // 워드프레스 블로그 포스팅 프록시
 app.post('/proxy/wp-post', async (req, res) => {
-    const { userId, postData } = req.body;
+    const { userId, blogUrl, postData } = req.body;
 
-    if (!userId || !postData) {
-        return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
+    if (!userId || !blogUrl || !postData || !postData.title || !postData.content) {
+        console.error("요청 데이터가 누락되었습니다:", req.body);
+        return res.status(400).json({ success: false, error: "요청 데이터가 누락되었습니다." });
     }
 
     try {
         const userData = await getUserData(userId);
-        const { siteUrl, username, appPassword } = userData;
+        const { username, appPassword } = userData.wordpressCredentials || {};
 
-        if (!siteUrl || !username || !appPassword) {
-            return res.status(400).json({ success: false, error: '워드프레스 크리덴셜이 설정되지 않았습니다.' });
+        if (!username || !appPassword) {
+            return res.status(400).json({ success: false, error: "워드프레스 크리덴셜이 설정되지 않았습니다." });
         }
 
         const response = await axios.post(
-            `${siteUrl}/wp-json/wp/v2/posts`,
+            `${blogUrl}/wp-json/wp/v2/posts`,
             {
                 title: postData.title,
                 content: postData.content,
@@ -74,14 +75,15 @@ app.post('/proxy/wp-post', async (req, res) => {
 
         res.json({ success: true, data: response.data });
     } catch (error) {
-        console.error('워드프레스 포스팅 오류:', error.message);
+        console.error("워드프레스 포스팅 오류:", error.message);
         if (error.response) {
             res.status(error.response.status).json({ success: false, error: error.response.data });
         } else {
-            res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
+            res.status(500).json({ success: false, error: "서버 오류가 발생했습니다." });
         }
     }
 });
+
 
 
 

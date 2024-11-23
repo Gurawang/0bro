@@ -2410,26 +2410,64 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
 
 // 블로그 포스팅
 async function postToBlog(blogSelection, blogCredentials, postData) {
-    try {
-        const response = await fetch(`${PROXY_SERVER_URL}/proxy/${blogCredentials.type === "wordpress" ? "wp-post" : "google-blog"}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                userId: auth.currentUser?.uid,
-                blogUrl: blogSelection,
-                postData,
-            }),
-        });
+    // 요청 데이터 로그
+    console.log("블로그 선택:", blogSelection);
+    console.log("블로그 인증 정보:", blogCredentials);
+    console.log("포스팅 데이터:", postData);
 
+    // 요청 데이터 유효성 검증
+    if (!blogSelection) {
+        console.error("블로그 URL이 설정되지 않았습니다.");
+        return false;
+    }
+
+    if (!postData || !postData.title || !postData.content) {
+        console.error("포스팅 데이터가 누락되었습니다. 요청 데이터:", postData);
+        return false;
+    }
+
+    try {
+        // POST 요청 생성
+        const requestBody = {
+            userId: auth.currentUser?.uid,
+            blogUrl: blogSelection,
+            postData,
+        };
+
+        console.log("전송 데이터:", requestBody);
+
+        const response = await fetch(
+            `${PROXY_SERVER_URL}/proxy/${blogCredentials.type === "wordpress" ? "wp-post" : "google-blog"}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(requestBody),
+            }
+        );
+
+        // 응답 확인
         const result = await response.json();
-        return result.success;
+
+        if (response.ok && result.success) {
+            console.log(`${blogCredentials.type} 블로그 포스팅 성공:`, result.data);
+            return true;
+        } else {
+            console.error(
+                `${blogCredentials.type} 블로그 포스팅 실패. 상태 코드: ${response.status}`,
+                "응답 데이터:",
+                result
+            );
+            return false;
+        }
     } catch (error) {
-        console.error("포스팅 중 오류:", error);
+        // 네트워크 또는 기타 에러 처리
+        console.error("포스팅 중 오류 발생:", error);
         return false;
     }
 }
+
 
 async function updatePostHistory(userId, postData) {
     try {
