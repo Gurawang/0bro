@@ -45,46 +45,49 @@ async function getWordPressCredentials(userId) {
 app.post('/proxy/gemini', async (req, res) => {
     const { userId, requestData } = req.body;
 
+    // 요청 데이터 검증
     if (!userId || !requestData) {
         return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
     }
 
     try {
-        const apiKey = await getGeminiApiKey(userId); // 사용자 API 키 로드
-        if (!apiKey) {
-            return res.status(403).json({ success: false, error: 'API 키가 설정되지 않았습니다.' });
+        // 사용자 API 키 가져오기
+        const userDoc = await db.collection('settings').doc(userId).get();
+        if (!userDoc.exists) {
+            return res.status(404).json({ success: false, error: '사용자 데이터를 찾을 수 없습니다.' });
         }
 
+        const geminiKey = userDoc.data()?.geminiKey;
+        if (!geminiKey) {
+            return res.status(403).json({ success: false, error: 'Gemini API 키가 설정되지 않았습니다.' });
+        }
+
+        // Gemini API 호출
         const response = await axios.post(
-            "https://generativelanguage.googleapis.com/v1beta/generateText",
+            'https://generativelanguage.googleapis.com/v1beta/generateText',
             requestData,
             {
                 headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${geminiKey}`,
                 },
             }
         );
 
-        res.status(response.status).json({ success: true, data: response.data });
+        // 응답 반환
+        res.status(200).json({ success: true, data: response.data });
     } catch (error) {
-        console.error("Gemini API 호출 오류:", error.message);
+        console.error('Gemini API 호출 오류:', error.message);
         if (error.response) {
             res.status(error.response.status).json({
                 success: false,
                 error: error.response.data,
             });
         } else {
-            res.status(500).json({ success: false, error: '서버 오류' });
+            res.status(500).json({ success: false, error: 'Gemini API 호출 중 서버 오류' });
         }
     }
 });
-
-// Helper: 사용자 Gemini API 키 로드
-async function getGeminiApiKey(userId) {
-    const userDoc = await db.collection('settings').doc(userId).get();
-    return userDoc.exists ? userDoc.data()?.geminiKey : null;
-}
 
 
 

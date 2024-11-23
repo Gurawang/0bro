@@ -2418,12 +2418,12 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    ...(aiVersion.startsWith("gpt") && { Authorization: `Bearer ${apiKey}` }), // GPT의 경우 Authorization 추가
+                    Authorization: aiVersion.startsWith("gpt") ? `Bearer ${apiKey}` : undefined,
                 },
                 body: JSON.stringify(
                     aiVersion.startsWith("gpt")
                         ? requestData // GPT는 OpenAI API로 직접 요청
-                        : { userId, requestData } // Gemini는 프록시 서버로 요청
+                        : { userId, apiKey, ...requestData } // Gemini는 프록시 서버로 요청
                 ),
             }
         );
