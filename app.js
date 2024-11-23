@@ -2628,63 +2628,35 @@ const PROXY_SERVER_URL = 'https://proxy.dokdolove.com'; // 환경 변수로 설�
 // Google 및 WordPress 블로그로 포스팅
 async function postToBlog(blogSelection, blogCredentials, postData) {
     try {
-        if (blogCredentials.type === "wordpress") {
-            const response = await fetch(`${PROXY_SERVER_URL}/proxy/wp-post`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        const response = await fetch(`${PROXY_SERVER_URL}/proxy/${blogCredentials.type === "wordpress" ? "wp-post" : "google-blog"}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: auth.currentUser?.uid, // 현재 사용자 ID
+                postData: {
+                    title: postData.title,
+                    content: postData.content,
                 },
-                body: JSON.stringify({
-                    blogUrl: blogSelection,
-                    username: blogCredentials.username,
-                    password: blogCredentials.password,
-                    postData: {
-                        title: postData.title,
-                        content: postData.content,
-                        status: 'publish',
-                    },
-                }),
-            });
+            }),
+        });
 
-            const result = await response.json();
-            if (result.success) {
-                console.log("워드프레스 포스팅 성공:", result.data);
-                return true;
-            } else {
-                console.error("워드프레스 포스팅 실패:", result.error);
-                return false;
-            }
-        } else if (blogCredentials.type === "googleBlog") {
-            const response = await fetch(`${PROXY_SERVER_URL}/proxy/google-post`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    accessToken: blogCredentials.accessToken,
-                    blogId: blogCredentials.blogId,
-                    postData: {
-                        title: postData.title,
-                        content: postData.content,
-                        status: 'publish',
-                    },
-                }),
-            });
+        const result = await response.json();
 
-            const result = await response.json();
-            if (result.success) {
-                console.log("구글 블로그 포스팅 성공:", result.data);
-                return true;
-            } else {
-                console.error("구글 블로그 포스팅 실패:", result.error);
-                return false;
-            }
+        if (result.success) {
+            console.log(`${blogCredentials.type} 블로그 포스팅 성공:`, result.data);
+            return true;
+        } else {
+            console.error(`${blogCredentials.type} 블로그 포스팅 실패:`, result.error);
+            return false;
         }
     } catch (error) {
         console.error("포스팅 중 오류:", error);
         return false;
     }
 }
+
 
 
 

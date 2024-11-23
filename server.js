@@ -7,12 +7,6 @@ require('dotenv').config();
 const app = express();
 const PORT = 5000;
 
-// CORS 설정
-const corsOptions = {
-    origin: ['https://www.dokdolove.com'],
-    optionsSuccessStatus: 200
-};
-
 // Firebase Admin 초기화
 admin.initializeApp({
     credential: admin.credential.cert({
@@ -20,22 +14,12 @@ admin.initializeApp({
         privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
 });
 
 const db = admin.firestore();
 
 // 미들웨어 설정
-app.use(cors(corsOptions));
-app.use(express.json());
-
-// JSON 응답이 아닌 경우 에러 처리
-app.use((req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
-    next();
-});
-
-// CORS 설정
 app.use(cors({ origin: ['https://www.dokdolove.com'], optionsSuccessStatus: 200 }));
 app.use(express.json());
 
@@ -52,7 +36,7 @@ async function getUserData(userId) {
 app.post('/proxy/wp-post', async (req, res) => {
     const { userId, postData } = req.body;
 
-    if (!userId || !postData) {
+    if (!userId || !postData || !postData.title || !postData.content) {
         return res.status(400).json({ error: '요청 데이터가 누락되었습니다.' });
     }
 
@@ -95,7 +79,7 @@ app.post('/proxy/wp-post', async (req, res) => {
 app.post('/proxy/google-blog', async (req, res) => {
     const { userId, postData } = req.body;
 
-    if (!userId || !postData) {
+    if (!userId || !postData || !postData.title || !postData.content) {
         return res.status(400).json({ error: '요청 데이터가 누락되었습니다.' });
     }
 
@@ -133,6 +117,9 @@ app.post('/proxy/google-blog', async (req, res) => {
         }
     }
 });
+
+
+
 
 // 유효성 검증을 위한 공통 함수
 async function validateApiKey({ endpoint, headers, params }) {
@@ -267,7 +254,7 @@ app.get('/api/coupang/:userId', async (req, res) => {
     }
 });
 
-// HTTP 서버 실행
+// 서버 실행
 app.listen(PORT, () => {
     console.log(`서버가 http://localhost:${PORT}에서 실행 중입니다.`);
 });
