@@ -41,48 +41,40 @@ async function getWordPressCredentials(userId) {
     return doc.data();
 }
 
-// Gemini 텍스트 생성 프록시
+// Gemini 프록시 엔드포인트
 app.post('/proxy/gemini', async (req, res) => {
-    const { userId, prompt, model, temperature, top_p, max_output_tokens } = req.body;
+    const { userId, apiKey, requestData } = req.body;
 
-    if (!userId || !prompt || !model) {
+    if (!userId || !apiKey || !requestData) {
         return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
     }
 
     try {
-        const userData = await getUserData(userId);
-        const apiKey = userData.geminiKey;
-
-        if (!apiKey) {
-            return res.status(400).json({ success: false, error: 'Gemini API 키가 설정되지 않았습니다.' });
-        }
-
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/generateText`,
-            {
-                model,
-                prompt,
-                temperature: temperature || 0.7,
-                top_p: top_p || 0.9,
-                max_output_tokens: max_output_tokens || 1000,
-            },
+            "https://generativelanguage.googleapis.com/v1beta/generateText",
+            requestData,
             {
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                     Authorization: `Bearer ${apiKey}`,
                 },
             }
         );
 
-        res.status(200).json({ success: true, data: response.data });
+        res.status(response.status).json({ success: true, data: response.data });
     } catch (error) {
-        console.error('Gemini API 호출 오류:', error.response?.data || error.message);
-        res.status(error.response?.status || 500).json({
-            success: false,
-            error: error.response?.data || 'Gemini API 호출 중 서버 오류',
-        });
+        console.error("Gemini API 호출 오류:", error.message);
+        if (error.response) {
+            res.status(error.response.status).json({
+                success: false,
+                error: error.response.data,
+            });
+        } else {
+            res.status(500).json({ success: false, error: '서버 오류' });
+        }
     }
 });
+
 
 
 

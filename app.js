@@ -2370,7 +2370,6 @@ async function handlePostingOptions(settings, postData, blogCredentials) {
 // AI 콘텐츠 생성
 async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) {
     try {
-        // 현재 사용자 ID 확인
         const userId = auth.currentUser?.uid;
         if (!userId) {
             throw new Error("사용자 ID를 찾을 수 없습니다. 로그인 상태를 확인하세요.");
@@ -2410,18 +2409,19 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                 max_output_tokens: 1000,
             };
 
-        // API 호출
+        // 프록시 서버에 요청 전송
         const response = await fetch(
             aiVersion.startsWith("gpt") ? selectedConfig.apiUrl : `${PROXY_SERVER_URL}/proxy/gemini`,
             {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: aiVersion.startsWith("gpt") ? `Bearer ${apiKey}` : undefined,
                 },
-                body: JSON.stringify(
-                    aiVersion.startsWith("gpt") ? requestData : { userId, apiKey, requestData }
-                ),
+                body: JSON.stringify({
+                    userId,
+                    apiKey,
+                    requestData, // 요청 데이터 포함
+                }),
             }
         );
 
@@ -2431,7 +2431,6 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
             throw new Error(`AI 요청 실패: ${errorData.message || response.statusText}`);
         }
 
-        // 응답 데이터 파싱
         const data = await response.json();
         return aiVersion.startsWith("gpt")
             ? data.choices?.[0]?.message?.content.trim()
@@ -2441,6 +2440,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         throw error;
     }
 }
+
 
 
 
