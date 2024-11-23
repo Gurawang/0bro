@@ -32,24 +32,34 @@ async function getUserData(userId) {
     return doc.data();
 }
 
+// Firestore에서 사용자 WordPress 데이터 로드
+async function getWordPressCredentials(userId) {
+    const doc = await db.collection('settings').doc(userId).collection('wordpress').doc('wordpress').get();
+    if (!doc.exists) {
+        throw new Error('WordPress 데이터를 찾을 수 없습니다.');
+    }
+    return doc.data();
+}
+
 // 워드프레스 블로그 포스팅 프록시
 app.post('/proxy/wp-post', async (req, res) => {
     const { userId, postData } = req.body;
 
-    if (!userId || !postData || !postData.title || !postData.content) {
+    if (!userId || !postData) {
+        console.error("요청 데이터 누락:", req.body);
         return res.status(400).json({ error: '요청 데이터가 누락되었습니다.' });
     }
 
     try {
-        const userData = await getUserData(userId);
-        const { blogUrl, username, password } = userData.wordpressCredentials || {};
+        const { appPassword, siteUrl, username } = await getWordPressCredentials(userId);
 
-        if (!blogUrl || !username || !password) {
-            return res.status(400).json({ error: '워드프레스 크리덴셜이 설정되지 않았습니다.' });
+        if (!siteUrl || !username || !appPassword) {
+            console.error("WordPress 크리덴셜 누락:", { siteUrl, username, appPassword });
+            return res.status(400).json({ error: 'WordPress 크리덴셜이 설정되지 않았습니다.' });
         }
 
         const response = await axios.post(
-            `${blogUrl}/wp-json/wp/v2/posts`,
+            `${siteUrl}/wp-json/wp/v2/posts`,
             {
                 title: postData.title,
                 content: postData.content,
@@ -58,7 +68,7 @@ app.post('/proxy/wp-post', async (req, res) => {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+                    Authorization: `Basic ${Buffer.from(`${username}:${appPassword}`).toString('base64')}`,
                 },
             }
         );
@@ -74,6 +84,7 @@ app.post('/proxy/wp-post', async (req, res) => {
         }
     }
 });
+
 
 // 구글 블로그 포스팅 프록시
 app.post('/proxy/google-blog', async (req, res) => {
