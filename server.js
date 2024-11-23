@@ -45,6 +45,8 @@ async function getWordPressCredentials(userId) {
 app.post('/proxy/wp-post', async (req, res) => {
     const { userId, postData } = req.body;
 
+    console.log("WP POST 요청 데이터:", req.body); // 요청 데이터 확인
+
     if (!userId || !postData) {
         console.error("요청 데이터 누락:", req.body);
         return res.status(400).json({ error: '요청 데이터가 누락되었습니다.' });
@@ -52,6 +54,8 @@ app.post('/proxy/wp-post', async (req, res) => {
 
     try {
         const { appPassword, siteUrl, username } = await getWordPressCredentials(userId);
+
+        console.log("WordPress 크리덴셜:", { siteUrl, username }); // Firestore 데이터 확인
 
         if (!siteUrl || !username || !appPassword) {
             console.error("WordPress 크리덴셜 누락:", { siteUrl, username, appPassword });
@@ -73,6 +77,7 @@ app.post('/proxy/wp-post', async (req, res) => {
             }
         );
 
+        console.log("WordPress API 응답:", response.data); // API 응답 데이터 확인
         res.status(response.status).json({ success: true, data: response.data });
     } catch (error) {
         console.error('워드프레스 포스팅 오류:', error.message);
@@ -84,6 +89,7 @@ app.post('/proxy/wp-post', async (req, res) => {
         }
     }
 });
+
 
 
 // 구글 블로그 포스팅 프록시

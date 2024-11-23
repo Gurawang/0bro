@@ -160,6 +160,13 @@ function initHamburgerMenu() {
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+// 로그인 및 회원가입 코드
 
 
 function logout(event) {
@@ -379,6 +386,15 @@ function requireLogin(event, path) {
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+// 페이지 로드 코드
+
+
 
 // 라우터 함수: 설정 페이지에 처음 진입할 때만 settings.html을 불러오도록 수정
 async function router(path) {
@@ -468,6 +484,14 @@ async function fetchPage(url) {
         return "<p>페이지를 불러오는 중 문제가 발생했습니다.</p>";
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+//API 설정 및 블로그 등록 코드
 
 // 사이드바 열고 닫는 함수
 function toggleSettingsSidebar() {
@@ -1456,7 +1480,13 @@ function deleteGoogleBlog(id) {
 
 
 
-
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+//블로그 옵션 코드
 
 
 
@@ -2215,8 +2245,39 @@ function setCurrentSettings(settingsData) {
     document.getElementById("scheduleMinute").value = settingsData.schedule?.minute || "";
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+//블로그 생성 코드
+
+
+const aiConfig = {
+    gpt: {
+        apiUrl: "https://api.openai.com/v1/chat/completions",
+        models: {
+            "gpt-3.5-turbo": "gpt-3.5-turbo",
+            "gpt-4": "gpt-4",
+            "gpt-4-turbo": "gpt-4-turbo"
+        }
+    },
+    gemini: {
+        apiUrl: "https://api.gemini.com/v1/generate",
+        models: {
+            "gemini-1": "gemini-1",
+            "gemini-2": "gemini-2",
+            "gemini-advanced": "gemini-advanced"
+        }
+    }
+};
+
+// 환경 변수에서 프록시 서버 URL 가져오기
+const PROXY_SERVER_URL = 'https://proxy.dokdolove.com'; // 환경 변수로 설정 가능
+
+
 async function generatePost() {
-    // 사용자 ID 가져오기
     const userId = auth.currentUser?.uid;
     if (!userId) {
         alert("로그인 후 이용할 수 있습니다.");
@@ -2231,146 +2292,140 @@ async function generatePost() {
     }
 
     try {
-        // 1. 블로그 정보 가져오기
-        let blogCredentials = null;
-        console.log("선택된 블로그 URL (blogSelection):", settings.blogSelection);
-
-        const wordpressSnapshot = await db
-            .collection("settings")
-            .doc(userId)
-            .collection("wordpress")
-            .where("siteUrl", "==", settings.blogSelection)
-            .get();
-
-        const googleBlogSnapshot = await db
-            .collection("settings")
-            .doc(userId)
-            .collection("googleBlog")
-            .where("blogUrl", "==", settings.blogSelection)
-            .get();
-
-        if (!wordpressSnapshot.empty) {
-            console.log("WordPress 블로그 정보가 존재합니다.");
-            blogCredentials = {
-                ...wordpressSnapshot.docs[0].data(),
-                type: "wordpress",
-            };
-        } else if (!googleBlogSnapshot.empty) {
-            console.log("Google 블로그 정보가 존재합니다.");
-            blogCredentials = {
-                ...googleBlogSnapshot.docs[0].data(),
-                type: "googleBlog",
-            };
-        } else {
-            alert("선택된 블로그의 정보를 불러올 수 없습니다.");
+        // 1. 블로그 인증 정보 가져오기
+        const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
+        if (!blogCredentials) {
+            alert("블로그 인증 정보를 불러올 수 없습니다.");
             return;
         }
-
         console.log("블로그 인증 정보:", blogCredentials);
 
-        // 2. 주제 선택에 따른 처리
-        let postTopic = "";
-        if (settings.topicSelection === "realTimeKeyword") {
-            postTopic = await fetchRealTimeKeyword();
-        } else if (settings.topicSelection === "manualTopic") {
-            postTopic = settings.manualTopic;
-        } else if (settings.topicSelection === "rssCrawl") {
-            postTopic = await crawlRssContent(settings.rssInput);
-        }
-
+        // 2. 주제 생성
+        const postTopic = await resolvePostTopic(settings);
         if (!postTopic) {
             alert("주제를 설정하세요.");
             return;
         }
+        console.log("포스팅 주제:", postTopic);
 
-        // 3. 프롬프트 선택에 따른 텍스트 생성
-        let prompt = "";
-        if (settings.promptSelection === "defaultPrompt") {
-            prompt = defaultPrompt.replace("{{topic}}", postTopic);
-        } else {
-            const promptDoc = await db.collection("settings").doc(userId).collection("prompts").doc(settings.promptSelection).get();
-            if (promptDoc.exists) {
-                prompt = promptDoc.data().content.replace("{{topic}}", postTopic);
-            }
-        }
-
-        // 4. 스타일 및 언어 설정
-        if (!settings.language) {
-            alert("언어를 선택하세요.");
+        // 3. 프롬프트 생성
+        const prompt = await resolvePrompt(userId, settings, postTopic);
+        if (!prompt) {
+            alert("프롬프트를 설정하세요.");
             return;
         }
-        if (!settings.tone) {
-            alert("문체를 선택하세요.");
-            return;
-        }
-        const useEmoji = settings.emojiToggle;
+        console.log("생성된 프롬프트:", prompt);
 
-        // 5. AI 버전 선택
-        if (!settings.aiSelection) {
-            alert("AI 버전을 선택하세요.");
-            return;
-        }
+        // 4. AI 기반 콘텐츠 생성
+        const content = await generatePostContent(prompt, settings.language, settings.tone, settings.emojiToggle, settings.aiSelection);
+        console.log("생성된 포스팅 콘텐츠:", content);
 
-        // 6. 이미지 처리
-        let images = [];
-        if (settings.useImage) {
-            if (settings.imageOption === "search") {
-                if (settings.imageSearchEngine === "google") {
-                    images = await searchGoogleImages(postTopic);
-                } else if (settings.imageSearchEngine === "pixabay") {
-                    images = await searchPixabayImages(postTopic);
-                }
-            } else if (settings.imageOption === "upload") {
-                images = settings.uploadedImages;
-            }
-            if (settings.showImageSource) {
-            images = images.map((img) => ({
-                url: img,
-                source: `출처: ${img.source || "알 수 없음"}`,
-            }));
-            }
-            if (settings.insertTextToggle) {
-                images = await insertTextIntoImages(images, settings.insertedText);
-            }
-        }
+        // 5. 이미지 및 광고 처리
+        const images = await processImages(settings, postTopic);
+        const ads = await generateAds(settings);
 
-        // 7. 광고 삽입
-        let ads = [];
-        if (settings.useCoupangAds && settings.coupangLink) {
-            ads.push(await generateCoupangAd(settings.coupangLink));
-        }
-        if (settings.useAdSenseAds) {
-            ads.push("에드센스 광고 배너 삽입 코드");
-        }
-
-        // 8. 포스팅 생성
+        // 6. 최종 포스팅 데이터 생성
         const postData = {
             title: `Generated Post: ${postTopic}`,
-            content: await generatePostContent(prompt, settings.language, settings.tone, useEmoji, settings.aiSelection),
-            images: images,
-            ads: ads,
+            content,
+            images,
+            ads,
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         };
 
-        // 9. 포스팅 옵션 처리
-        if (settings.postingOption.auto) {
-            await handleAutoPosting(postData, settings);
-        } else if (settings.postingOption.schedule) {
-            await schedulePost(postData, settings.schedule);
-        } else {
-            const isPosted = await postToBlog(settings.blogSelection, blogCredentials, postData);
-            if (isPosted) {
-                alert("포스팅이 완료되었습니다.");
-            } else {
-                alert("포스팅에 실패하였습니다.");
-            }
-        }
+        // 7. 포스팅 옵션 처리
+        await handlePostingOptions(settings, postData, blogCredentials);
 
-        // 10. 작업 히스토리 업데이트
+        // 8. 작업 히스토리 업데이트
         await updatePostHistory(userId, postData);
+
+        alert("포스팅 작업이 성공적으로 완료되었습니다.");
     } catch (error) {
         console.error("포스팅 생성 중 오류:", error);
         alert("포스팅 생성 중 오류가 발생했습니다.");
+    }
+}
+
+// 포스팅 옵션 처리
+async function handlePostingOptions(settings, postData, blogCredentials) {
+    if (settings.postingOption.auto) {
+        await handleAutoPosting(postData, settings);
+    } else if (settings.postingOption.schedule) {
+        await schedulePost(postData, settings.schedule);
+    } else {
+        const isPosted = await postToBlog(settings.blogSelection, blogCredentials, postData);
+        if (!isPosted) {
+            throw new Error("포스팅에 실패했습니다.");
+        }
+    }
+}
+
+// AI 콘텐츠 생성
+async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) {
+    try {
+        const userId = auth.currentUser?.uid;
+        const userDoc = await db.collection("settings").doc(userId).get();
+        const userData = userDoc.data();
+        const apiKey = aiVersion.startsWith("gpt") ? userData.openAIKey : userData.geminiKey;
+        const selectedConfig = aiVersion.startsWith("gpt") ? aiConfig.gpt : aiConfig.gemini;
+        const model = selectedConfig.models[aiVersion];
+
+        const requestData = aiVersion.startsWith("gpt")
+            ? {
+                model,
+                messages: [
+                    { role: "system", content: "당신은 훌륭한 블로그 글 작성가입니다." },
+                    { role: "user", content: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}` }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7,
+            }
+            : {
+                model,
+                prompt: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}`,
+                max_tokens: 1000,
+                temperature: 0.7,
+            };
+
+        const response = await fetch(selectedConfig.apiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify(requestData),
+        });
+
+        const data = await response.json();
+        return aiVersion.startsWith("gpt")
+            ? data.choices?.[0]?.message?.content.trim()
+            : data.choices?.[0]?.text.trim();
+    } catch (error) {
+        console.error("AI 콘텐츠 생성 중 오류:", error);
+        throw error;
+    }
+}
+
+// 블로그 포스팅
+async function postToBlog(blogSelection, blogCredentials, postData) {
+    try {
+        const response = await fetch(`${PROXY_SERVER_URL}/proxy/${blogCredentials.type === "wordpress" ? "wp-post" : "google-blog"}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                userId: auth.currentUser?.uid,
+                blogUrl: blogSelection,
+                postData,
+            }),
+        });
+
+        const result = await response.json();
+        return result.success;
+    } catch (error) {
+        console.error("포스팅 중 오류:", error);
+        return false;
     }
 }
 
@@ -2419,148 +2474,107 @@ async function loadPostHistory(userId) {
 }
 
 
-const aiConfig = {
-    gpt: {
-        apiUrl: "https://api.openai.com/v1/chat/completions",
-        models: {
-            "gpt-3.5-turbo": "gpt-3.5-turbo",
-            "gpt-4": "gpt-4",
-            "gpt-4-turbo": "gpt-4-turbo"
-        }
-    },
-    gemini: {
-        apiUrl: "https://api.gemini.com/v1/generate",
-        models: {
-            "gemini-1": "gemini-1",
-            "gemini-2": "gemini-2",
-            "gemini-advanced": "gemini-advanced"
-        }
+// 블로그 인증 정보 가져오기
+async function fetchBlogCredentials(userId, blogSelection) {
+    const wordpressSnapshot = await db
+        .collection("settings")
+        .doc(userId)
+        .collection("wordpress")
+        .where("siteUrl", "==", blogSelection)
+        .get();
+
+    const googleBlogSnapshot = await db
+        .collection("settings")
+        .doc(userId)
+        .collection("googleBlog")
+        .where("blogUrl", "==", blogSelection)
+        .get();
+
+    if (!wordpressSnapshot.empty) {
+        return { ...wordpressSnapshot.docs[0].data(), type: "wordpress" };
     }
-};
-
-
-async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) {
-    console.log("포스팅 콘텐츠 생성 시작...");
-    console.log("프롬프트:", prompt);
-    console.log("언어:", language);
-    console.log("문체:", tone);
-    console.log("이모티콘 사용 여부:", useEmoji);
-    console.log("AI 버전:", aiVersion);
-
-    try {
-        // Firestore에서 API 키 가져오기
-        const userId = auth.currentUser?.uid;
-        if (!userId) {
-            throw new Error("로그인하지 않았습니다.");
-        }
-
-        const userDoc = await db.collection("settings").doc(userId).get();
-        if (!userDoc.exists) {
-            console.error("Firestore에서 사용자 데이터를 찾을 수 없습니다.");
-            throw new Error("사용자 데이터가 Firestore에 존재하지 않습니다.");
-        }
-
-        const userData = userDoc.data();
-        console.log("Firestore에서 로드된 사용자 데이터:", userData);
-
-        let apiKey;
-        if (aiVersion.startsWith("gpt")) {
-            apiKey = userData.openAIKey;
-            console.log("GPT API 키:", apiKey);
-        } else if (aiVersion.startsWith("gemini")) {
-            apiKey = userData.geminiKey;
-            console.log("Gemini API 키:", apiKey);
-        }
-
-        if (!apiKey) {
-            console.error(`Firestore에서 ${aiVersion}에 대한 API 키가 없습니다.`);
-            console.error("로드된 사용자 데이터:", userData);
-            throw new Error(`AI 버전에 대한 API 키가 설정되지 않았습니다: ${aiVersion}`);
-        }
-
-
-        // AI 버전 설정
-        const selectedConfig = aiVersion.startsWith("gpt")
-            ? aiConfig.gpt
-            : aiConfig.gemini;
-
-        const model = selectedConfig.models[aiVersion];
-        if (!model) {
-            throw new Error(`AI 버전 "${aiVersion}"에 대한 설정이 없습니다.`);
-        }
-
-        const requestData = aiVersion.startsWith("gpt")
-        ? {
-            model: model,
-            messages: [
-                { role: "system", content: "당신은 훌륭한 블로그 글 작성가입니다." },
-                { role: "user", content: `
-                    언어: ${language}
-                    문체: ${tone}
-                    ${useEmoji ? "이모티콘 포함" : ""}
-                    내용:
-                    ${prompt}
-                `}
-            ],
-            max_tokens: 1000,
-            temperature: 0.7,
-        }
-        : {
-            model: model,
-            prompt: `
-                언어: ${language}
-                문체: ${tone}
-                ${useEmoji ? "이모티콘 포함" : ""}
-                내용:
-                ${prompt}
-            `,
-            max_tokens: 1000,
-            temperature: 0.7,
-        };
-
-
-        console.log("API 요청 데이터:", requestData);
-
-        // API 호출
-        const response = await fetch(selectedConfig.apiUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify(requestData),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error(`${aiVersion} API 오류:`, errorData);
-            throw new Error(`${aiVersion} API 호출 실패`);
-        }
-
-        const data = await response.json();
-        console.log("API 응답 데이터:", data);
-
-        return aiVersion.startsWith("gpt")
-        ? data.choices?.[0]?.message?.content.trim()
-        : data.choices?.[0]?.text.trim() || "콘텐츠 생성에 실패했습니다.";
-
-    } catch (error) {
-        console.error("포스팅 콘텐츠 생성 중 오류:", error);
-        throw error;
+    if (!googleBlogSnapshot.empty) {
+        return { ...googleBlogSnapshot.docs[0].data(), type: "googleBlog" };
     }
+    return null;
 }
 
-// Firestore에서 API 키 가져오기
-async function getApiKeys(userId) {
-    try {
-        const userDoc = await db.collection("settings").doc(userId).get();
-        if (!userDoc.exists) {
-            throw new Error("Firestore에서 사용자 데이터를 찾을 수 없습니다.");
+// 주제 생성
+async function resolvePostTopic(settings) {
+    if (settings.topicSelection === "realTimeKeyword") {
+        return fetchRealTimeKeyword();
+    } else if (settings.topicSelection === "manualTopic") {
+        return settings.manualTopic;
+    } else if (settings.topicSelection === "rssCrawl") {
+        return crawlRssContent(settings.rssInput);
+    }
+    return null;
+}
+
+// 프롬프트 생성
+async function resolvePrompt(userId, settings, postTopic) {
+    if (settings.promptSelection === "defaultPrompt") {
+        return defaultPrompt.replace("{{topic}}", postTopic);
+    } else {
+        const promptDoc = await db
+            .collection("settings")
+            .doc(userId)
+            .collection("prompts")
+            .doc(settings.promptSelection)
+            .get();
+        if (promptDoc.exists) {
+            return promptDoc.data().content.replace("{{topic}}", postTopic);
         }
-        return userDoc.data(); // Firestore에서 사용자 데이터 반환
-    } catch (error) {
-        console.error("API 키 가져오기 오류:", error);
-        throw error;
+    }
+    return null;
+}
+
+// 이미지 처리
+async function processImages(settings, postTopic) {
+    let images = [];
+    if (settings.useImage) {
+        if (settings.imageOption === "search") {
+            if (settings.imageSearchEngine === "google") {
+                images = await searchGoogleImages(postTopic);
+            } else if (settings.imageSearchEngine === "pixabay") {
+                images = await searchPixabayImages(postTopic);
+            }
+        } else if (settings.imageOption === "upload") {
+            images = settings.uploadedImages;
+        }
+        if (settings.showImageSource) {
+            images = images.map((img) => ({
+                url: img,
+                source: `출처: ${img.source || "알 수 없음"}`,
+            }));
+        }
+        if (settings.insertTextToggle) {
+            images = await insertTextIntoImages(images, settings.insertedText);
+        }
+    }
+    return images;
+}
+
+// 광고 생성
+async function generateAds(settings) {
+    const ads = [];
+    if (settings.useCoupangAds && settings.coupangLink) {
+        ads.push(await generateCoupangAd(settings.coupangLink));
+    }
+    if (settings.useAdSenseAds) {
+        ads.push("에드센스 광고 배너 삽입 코드");
+    }
+    return ads;
+}
+
+// 포스팅 처리
+async function handlePosting(settings, postData, blogCredentials) {
+    if (settings.postingOption.auto) {
+        return handleAutoPosting(postData, settings);
+    } else if (settings.postingOption.schedule) {
+        return schedulePost(postData, settings.schedule);
+    } else {
+        return postToBlog(settings.blogSelection, blogCredentials, postData);
     }
 }
 
@@ -2610,6 +2624,7 @@ async function insertTextIntoImages(images, text, cloudinaryConfig) {
         console.error("이미지에 텍스트 삽입 오류:", error);
         return images;
     }
+
 }
 
 // 광고 삽입
@@ -2621,44 +2636,6 @@ async function generateCoupangAd(coupangLink) {
         return null;
     }
 }
-
-// 환경 변수에서 프록시 서버 URL 가져오기
-const PROXY_SERVER_URL = 'https://proxy.dokdolove.com'; // 환경 변수로 설정 가능
-
-// Google 및 WordPress 블로그로 포스팅
-async function postToBlog(blogSelection, blogCredentials, postData) {
-    try {
-        const response = await fetch(`${PROXY_SERVER_URL}/proxy/${blogCredentials.type === "wordpress" ? "wp-post" : "google-blog"}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                userId: auth.currentUser?.uid, // 현재 사용자 ID
-                postData: {
-                    title: postData.title,
-                    content: postData.content,
-                },
-            }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            console.log(`${blogCredentials.type} 블로그 포스팅 성공:`, result.data);
-            return true;
-        } else {
-            console.error(`${blogCredentials.type} 블로그 포스팅 실패:`, result.error);
-            return false;
-        }
-    } catch (error) {
-        console.error("포스팅 중 오류:", error);
-        return false;
-    }
-}
-
-
-
 
 
 async function fetchRealTimeKeyword() {
@@ -2686,6 +2663,16 @@ async function crawlRssContent(rssUrl) {
         return "";
     }
 }
+
+
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+//가이드 코드
+
 
 
 // 사이드바 항목 클릭 시 선택 상태 표시
@@ -3012,8 +2999,13 @@ const guideData = {
 
 
 
-
-
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+//어시스트 코드
 
 let currentStep = 0;
 
