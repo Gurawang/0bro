@@ -2550,103 +2550,129 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
     }
 }
 
+// Firestore에서 API 키 가져오기
+async function getApiKeys(userId) {
+    try {
+        const userDoc = await db.collection("settings").doc(userId).get();
+        if (!userDoc.exists) {
+            throw new Error("Firestore에서 사용자 데이터를 찾을 수 없습니다.");
+        }
+        return userDoc.data(); // Firestore에서 사용자 데이터 반환
+    } catch (error) {
+        console.error("API 키 가져오기 오류:", error);
+        throw error;
+    }
+}
 
+// 이미지 검색 및 처리
+async function searchGoogleImages(query, apiKey, cx) {
+    try {
+        const response = await fetch(
+            `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${cx}&searchType=image&key=${apiKey}`
+        );
+        const data = await response.json();
+        return data.items.map((item) => ({
+            url: item.link,
+            source: item.displayLink,
+        }));
+    } catch (error) {
+        console.error("Google 이미지 검색 오류:", error);
+        return [];
+    }
+}
 
+async function searchPixabayImages(query, apiKey) {
+    try {
+        const response = await fetch(
+            `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo`
+        );
+        const data = await response.json();
+        return data.hits.map((hit) => ({
+            url: hit.webformatURL,
+            source: hit.pageURL,
+        }));
+    } catch (error) {
+        console.error("Pixabay 이미지 검색 오류:", error);
+        return [];
+    }
+}
 
+async function insertTextIntoImages(images, text, cloudinaryConfig) {
+    try {
+        return images.map((image) => {
+            const url = new URL(image.url);
+            const cloudinaryUrl = `https://res.cloudinary.com/${cloudinaryConfig.cloudName}/image/upload/l_text:Arial_20:${encodeURIComponent(
+                text
+            )}/${url.pathname}`;
+            return { ...image, url: cloudinaryUrl };
+        });
+    } catch (error) {
+        console.error("이미지에 텍스트 삽입 오류:", error);
+        return images;
+    }
+}
+
+// 광고 삽입
+async function generateCoupangAd(coupangLink) {
+    try {
+        return `<a href="${coupangLink}" target="_blank">쿠팡 광고 링크</a>`;
+    } catch (error) {
+        console.error("쿠팡 광고 생성 오류:", error);
+        return null;
+    }
+}
+
+// Google 및 WordPress 블로그로 포스팅
 async function postToBlog(blogSelection, blogCredentials, postData) {
     try {
-        if (blogSelection.includes("wordpress")) {
-            return await postToWordPress(blogCredentials, postData);
-        } else if (blogSelection.includes("googleBlog")) {
-            return await postToGoogleBlog(blogCredentials, postData);
+        if (blogCredentials.type === "wordpress") {
+            const response = await fetch(`${blogSelection}/wp-json/wp/v2/posts`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Basic ${btoa(`${blogCredentials.username}:${blogCredentials.password}`)}`,
+                },
+                body: JSON.stringify({
+                    title: postData.title,
+                    content: postData.content,
+                    status: "publish",
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("워드프레스 포스팅 오류:", errorData);
+                return false;
+            }
+            console.log("워드프레스 포스팅 성공");
+            return true;
+        } else if (blogCredentials.type === "googleBlog") {
+            const response = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogCredentials.blogId}/posts/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${blogCredentials.token}`,
+                },
+                body: JSON.stringify({
+                    title: postData.title,
+                    content: postData.content,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("구글 블로그 포스팅 오류:", errorData);
+                return false;
+            }
+            console.log("구글 블로그 포스팅 성공");
+            return true;
         }
-        return false;
     } catch (error) {
-        console.error("블로그 포스팅 오류:", error);
+        console.error("포스팅 중 오류:", error);
         return false;
     }
 }
 
-async function postToWordPress(credentials, postData) {
-    const { siteUrl, username, appPassword } = credentials;
-
-    if (!siteUrl || !username || !appPassword) {
-        console.error("워드프레스 인증 정보가 부족합니다.");
-        return false;
-    }
-
-    try {
-        const response = await fetch(`${siteUrl}/wp-json/wp/v2/posts`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Basic ${btoa(`${username}:${appPassword}`)}`,
-            },
-            body: JSON.stringify({
-                title: postData.title,
-                content: postData.content + formatAds(postData.ads),
-                status: "publish", // 'draft'로 변경 시 임시 저장
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("워드프레스 포스팅 실패:", response.status, errorText);
-            return false;
-        }
-
-        const result = await response.json();
-        console.log("워드프레스 포스팅 성공:", result);
-        return true;
-    } catch (error) {
-        console.error("워드프레스 포스팅 오류:", error);
-        return false;
-    }
-}
-
-
-async function postToGoogleBlog(credentials, postData) {
-    const { blogId, accessToken } = credentials;
-
-    try {
-        const response = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({
-                kind: "blogger#post",
-                title: postData.title,
-                content: postData.content + formatAds(postData.ads),
-            }),
-        });
-
-        if (!response.ok) {
-            console.error("구글 블로그 포스팅 실패:", response.statusText);
-            return false;
-        }
-
-        const result = await response.json();
-        console.log("구글 블로그 포스팅 성공:", result);
-        return true;
-    } catch (error) {
-        console.error("구글 블로그 포스팅 오류:", error);
-        return false;
-    }
-}
-
-function formatAds(ads) {
-    return ads
-        .map(
-            (ad) => `
-        <div class="ad-container">
-            ${ad}
-        </div>
-    `
-        )
-        .join("");
-}
 
 async function fetchRealTimeKeyword() {
     try {
@@ -2673,48 +2699,6 @@ async function crawlRssContent(rssUrl) {
         return "";
     }
 }
-
-async function searchImages(topic, source) {
-    try {
-        const apiUrl = source === "google" ? "https://example.com/api/google-images" : "https://example.com/api/pixabay";
-        const response = await fetch(`${apiUrl}?query=${encodeURIComponent(topic)}`);
-        if (!response.ok) throw new Error("이미지 검색 API 호출 실패");
-
-        const data = await response.json();
-        return data.images.slice(0, 3); // 최대 3개의 이미지를 반환
-    } catch (error) {
-        console.error("이미지 검색 오류:", error);
-        return [];
-    }
-}
-
-async function insertTextIntoImages(images, text) {
-    const cloudinaryUrl = "https://api.cloudinary.com/v1_1/YOUR_CLOUDINARY_NAME/image/upload";
-    const results = [];
-
-    for (const image of images) {
-        try {
-            const response = await fetch(cloudinaryUrl, {
-                method: "POST",
-                body: JSON.stringify({
-                    file: image,
-                    upload_preset: "YOUR_UPLOAD_PRESET",
-                    context: { alt: text },
-                }),
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                results.push(result.secure_url); // Cloudinary에서 업로드된 이미지 URL 저장
-            }
-        } catch (error) {
-            console.error("이미지 텍스트 삽입 오류:", error);
-        }
-    }
-
-    return results;
-}
-
 
 
 // 사이드바 항목 클릭 시 선택 상태 표시
