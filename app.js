@@ -2264,16 +2264,17 @@ const aiConfig = {
         }
     },
     gemini: {
-        apiUrl: "https://generativelanguage.googleapis.com/v1beta/models", // 기본 엔드포인트
+        apiUrl: "https://generativelanguage.googleapis.com/v1beta", // 기본 엔드포인트
         models: {
-            "gemini-1": "gemini-1",
-            "gemini-2": "gemini-2",
-            "gemini-advanced": "gemini-advanced",
-            "gemini-1.5-flash": "gemini-1.5-flash"
+            "gemini-1": "models/gemini-1",
+            "gemini-2": "models/gemini-2",
+            "gemini-advanced": "models/gemini-advanced",
+            "gemini-1.5-flash": "models/gemini-1.5-flash"
         },
         generateEndpoint: "https://generativelanguage.googleapis.com/v1beta/generateText" // 텍스트 생성 엔드포인트
     }
 };
+
 
 
 // 환경 변수에서 프록시 서버 URL 가져오기

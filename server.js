@@ -80,6 +80,7 @@ app.post('/proxy/gemini', async (req, res) => {
 });
 
 
+
 // 워드프레스 블로그 포스팅 프록시
 app.post('/proxy/wp-post', async (req, res) => {
     const { userId, blogUrl, username, appPassword, postData } = req.body;
