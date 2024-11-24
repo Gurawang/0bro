@@ -43,38 +43,33 @@ async function getWordPressCredentials(userId) {
 
 // Gemini 프록시 엔드포인트
 app.post('/proxy/gemini', async (req, res) => {
-    const { userId, requestData } = req.body;
+    const { userId, apiKey, requestData } = req.body;
 
     // 요청 데이터 검증
-    if (!userId || !requestData) {
+    if (!userId || !apiKey || !requestData || !requestData.prompt || !requestData.model) {
         return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
     }
 
     try {
-        // 사용자 API 키 가져오기
-        const userDoc = await db.collection('settings').doc(userId).get();
-        if (!userDoc.exists) {
-            return res.status(404).json({ success: false, error: '사용자 데이터를 찾을 수 없습니다.' });
-        }
-
-        const geminiKey = userDoc.data()?.geminiKey;
-        if (!geminiKey) {
-            return res.status(403).json({ success: false, error: 'Gemini API 키가 설정되지 않았습니다.' });
-        }
-
         // Gemini API 호출
         const response = await axios.post(
             'https://generativelanguage.googleapis.com/v1beta/generateText',
-            requestData,
+            {
+                model: requestData.model,
+                prompt: requestData.prompt,
+                temperature: requestData.temperature || 0.7,
+                top_p: requestData.top_p || 0.9,
+                max_output_tokens: requestData.max_output_tokens || 1000,
+            },
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${geminiKey}`,
+                    Authorization: `Bearer ${apiKey}`,
                 },
             }
         );
 
-        // 응답 반환
+        // 성공 응답 반환
         res.status(200).json({ success: true, data: response.data });
     } catch (error) {
         console.error('Gemini API 호출 오류:', error.message);
@@ -88,6 +83,7 @@ app.post('/proxy/gemini', async (req, res) => {
         }
     }
 });
+
 
 
 

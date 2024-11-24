@@ -2409,6 +2409,12 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                 max_output_tokens: 1000,
             };
 
+        console.log("전송 데이터:", {
+            userId,
+            apiKey,
+            requestData,
+        });
+
         // 프록시 서버에 요청 전송
         const response = await fetch(
             aiVersion.startsWith("gpt")
@@ -2420,17 +2426,16 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
                     "Content-Type": "application/json",
                     Authorization: aiVersion.startsWith("gpt") ? `Bearer ${apiKey}` : undefined,
                 },
-                body: JSON.stringify(
-                    aiVersion.startsWith("gpt")
-                        ? requestData // GPT는 OpenAI API로 직접 요청
-                        : { userId, apiKey, ...requestData } // Gemini는 프록시 서버로 요청
-                ),
+                body: JSON.stringify({
+                    userId,
+                    apiKey,
+                    requestData,
+                }),
             }
         );
 
-
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({}));
             console.error("AI API 오류:", errorData);
             throw new Error(`AI 요청 실패: ${errorData.message || response.statusText}`);
         }
@@ -2444,6 +2449,7 @@ async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) 
         throw error;
     }
 }
+
 
 
 
