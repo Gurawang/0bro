@@ -507,6 +507,14 @@ async function handleScheduledPosting(jobId, userId, settings) {
 // 워드프레스 포스팅
 async function postToWordPress(settings, postData) {
     try {
+        // 디버깅용 로그 추가
+        console.log('포스팅 요청 데이터 확인:');
+        console.log('Blog URL:', settings.blogUrl);
+        console.log('Username:', settings.username);
+        console.log('App Password:', settings.appPassword);
+        console.log('Base64 Encoded Auth String:', Buffer.from(`${settings.username}:${settings.appPassword}`).toString('base64'));
+        console.log('Post Data:', postData);
+
         const response = await axios.post(
             `${settings.blogUrl}/wp-json/wp/v2/posts`,
             {
@@ -521,13 +529,26 @@ async function postToWordPress(settings, postData) {
                 },
             }
         );
+
         console.log('워드프레스 포스팅 성공:', response.data);
         return response.data;
     } catch (error) {
         console.error('워드프레스 포스팅 오류:', error.message);
+
+        // 에러 응답 세부 정보 로그
+        if (error.response) {
+            console.error('에러 응답 상태 코드:', error.response.status);
+            console.error('에러 응답 데이터:', error.response.data);
+        } else {
+            console.error('네트워크 또는 서버 오류:', error.message);
+        }
+
         throw error;
     }
 }
+
+
+
 
 // 구글 블로그 포스팅
 async function postToGoogleBlog(settings, postData) {
@@ -628,46 +649,6 @@ async function processImages(settings, topic) {
     return settings.uploadedImages || [];
 }
 
-// 블로그 포스팅 함수
-// 블로그 포스팅
-async function postToBlog(blogSelection, blogCredentials, postData) {
-    try {
-        if (blogSelection === 'wordpress') {
-            const response = await axios.post(`${blogCredentials.siteUrl}/wp-json/wp/v2/posts`, {
-                title: postData.title,
-                content: postData.content,
-                status: 'publish',
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Basic ${Buffer.from(`${blogCredentials.username}:${blogCredentials.appPassword}`).toString('base64')}`,
-                },
-            });
-            return response.data;
-        } else if (blogSelection === 'googleBlog') {
-            const response = await axios.post(
-                `https://www.googleapis.com/blogger/v3/blogs/${blogCredentials.blogId}/posts/`,
-                {
-                    kind: 'blogger#post',
-                    title: postData.title,
-                    content: postData.content,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${blogCredentials.googleApiKey}`,
-                    },
-                }
-            );
-            return response.data;
-        } else {
-            throw new Error('지원하지 않는 블로그 플랫폼입니다.');
-        }
-    } catch (error) {
-        console.error('블로그 포스팅 오류:', error.message);
-        throw new Error('블로그 포스팅 중 오류가 발생했습니다.');
-    }
-}
 
 // 작업 이력 저장
 async function updatePostHistory(userId, postData) {
