@@ -1554,10 +1554,12 @@ async function loadRegisteredBlogs() {
 let blogSelection = null;
 let blogUrl = null;
 
+// 블로그 선택 시 호출
 async function handleToggleChange(selectedToggle, platform, docId) {
-    const blogUrl = selectedToggle.value;
+    blogUrl = selectedToggle.value; // blogUrl 설정
+    blogSelection = platform; // blogSelection 설정
 
-    console.log("선택된 블로그 플랫폼:", platform);
+    console.log("선택된 블로그 플랫폼:", blogSelection);
     console.log("선택된 블로그 URL:", blogUrl);
 
     const userId = auth.currentUser?.uid;
@@ -1569,7 +1571,7 @@ async function handleToggleChange(selectedToggle, platform, docId) {
 
     try {
         // Firestore에서 선택된 블로그 데이터 가져오기
-        const docRef = db.collection("settings").doc(userId).collection(platform).doc(docId);
+        const docRef = db.collection("settings").doc(userId).collection(blogSelection).doc(docId);
         const doc = await docRef.get();
 
         if (doc.exists) {
@@ -1577,30 +1579,27 @@ async function handleToggleChange(selectedToggle, platform, docId) {
 
             console.log("불러온 블로그 데이터:", data);
 
-            // WordPress 데이터 저장
-            if (platform === "wordpress") {
+            // 선택된 플랫폼 데이터 설정
+            if (blogSelection === "wordpress") {
                 const { username, appPassword } = data;
 
-                // Firebase에 선택된 WordPress 정보 저장
+                // Firebase에 WordPress 정보 병합 저장
                 await db.collection("settings").doc(userId).set(
                     {
-                        blogSelection: platform,
+                        blogSelection,
                         blogUrl,
                         username,
                         appPassword,
                     },
                     { merge: true }
                 );
-            }
-
-            // Google Blog 데이터 저장
-            if (platform === "googleBlog") {
+            } else if (blogSelection === "googleBlog") {
                 const { blogId, clientId, clientSecret, refreshToken } = data;
 
-                // Firebase에 선택된 Google Blog 정보 저장
+                // Firebase에 Google Blog 정보 병합 저장
                 await db.collection("settings").doc(userId).set(
                     {
-                        blogSelection: platform,
+                        blogSelection,
                         blogUrl,
                         blogId,
                         clientId,
@@ -2302,25 +2301,25 @@ function getCurrentSettings() {
     const timeButtonType = activeTimeButton ? "button" : customInterval ? "custom" : null;
 
     // 블로그 관련 데이터 초기화
-    const blogSelection = document.querySelector('input[name="blogToggle"]:checked')?.dataset.blogType || ""; // 블로그 플랫폼
-    const blogUrl = document.querySelector('input[name="blogToggle"]:checked')?.value || ""; // 블로그 URL
-    const username = document.querySelector(`[data-blog-url="${blogUrl}"] .usernameInput`)?.value || "";
-    const appPassword = document.querySelector(`[data-blog-url="${blogUrl}"] .appPasswordInput`)?.value || "";
-    const blogId = document.querySelector(`[data-blog-url="${blogUrl}"] .blogIdInput`)?.value || "";
-    const clientId = document.querySelector(`[data-blog-url="${blogUrl}"] .clientIdInput`)?.value || "";
-    const clientSecret = document.querySelector(`[data-blog-url="${blogUrl}"] .clientSecretInput`)?.value || "";
-    const refreshToken = document.querySelector(`[data-blog-url="${blogUrl}"] .refreshTokenInput`)?.value || "";
+    if (!blogSelection || !blogUrl) {
+        console.error("선택된 블로그 정보가 없습니다.");
+        return {};
+    }
+
+    console.log("현재 설정 데이터 가져오기");
+    console.log("blogSelection:", blogSelection);
+    console.log("blogUrl:", blogUrl);
     
 
     return {
-        blogSelection,
-        blogUrl,
-        username,
-        appPassword,
-        blogId,
-        clientId,
-        clientSecret,
-        refreshToken,
+        blogSelection, // 플랫폼 정보
+        blogUrl, // URL 정보
+        username: window.loadedPlatformData?.username || "", // Firestore에서 불러온 username
+        appPassword: window.loadedPlatformData?.appPassword || "", // Firestore에서 불러온 appPassword
+        blogId: window.loadedPlatformData?.blogId || "", // Firestore에서 불러온 blogId
+        clientId: window.loadedPlatformData?.clientId || "", // Firestore에서 불러온 clientId
+        clientSecret: window.loadedPlatformData?.clientSecret || "", // Firestore에서 불러온 clientSecret
+        refreshToken: window.loadedPlatformData?.refreshToken || "", // Firestore에서 불러온 refreshToken
         topicSelection: document.querySelector('input[name="topicToggle"]:checked')?.value || null,
         manualTopic: document.getElementById("topicInput")?.value || "",
         rssInput: document.getElementById("rssInput")?.value || "",
