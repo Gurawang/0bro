@@ -1728,23 +1728,42 @@ async function loadSavedPrompts() {
 // 선택한 저장된 프롬프트 불러오기
 async function handleSavedPromptSelect(promptId) {
     const userId = auth.currentUser?.uid;
+
+    console.log(`사용자 ID: ${userId}`);
+    console.log(`프롬프트 ID: ${promptId}`);
+
+    const docId = promptId.replace("savedPrompt-", ""); // 'savedPrompt-' 제거
+    console.log(`파싱된 문서 ID: ${docId}`);
+
+    if (!userId) {
+        console.error("사용자 인증이 필요합니다.");
+        alert("로그인이 필요합니다. 다시 시도해주세요.");
+        return;
+    }
+
     try {
-        const docId = promptId.replace("savedPrompt-", ""); // ID 추출
+        const docId = promptId.replace("savedPrompt-", ""); // 'savedPrompt-' 제거
+        console.log(`가져올 프롬프트 ID: ${docId}`);
+
         const doc = await db.collection("settings").doc(userId).collection("prompts").doc(docId).get();
+
         if (doc.exists) {
             const data = doc.data();
-            document.getElementById("promptTitleInput").value = data.title;
-            document.getElementById("savedPromptContent").value = data.content;
+            console.log("선택한 프롬프트 데이터:", data);
 
-            // 선택한 프롬프트를 UI에 표시
-            document.querySelector(`input[name="savedPromptToggle"][value="savedPrompt-${docId}"]`).checked = true;
+            // 프롬프트 내용 반영
+            document.getElementById("promptTitleInput").value = data.title || "";
+            document.getElementById("savedPromptContent").value = data.content || "";
         } else {
-            console.error("선택한 프롬프트를 찾을 수 없습니다.");
+            console.error(`선택한 프롬프트를 찾을 수 없습니다. (ID: ${docId})`);
+            alert("선택한 프롬프트를 찾을 수 없습니다. 저장된 목록을 확인해주세요.");
         }
     } catch (error) {
         console.error("프롬프트 선택 오류:", error);
+        alert("프롬프트를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
 }
+
 
 
 // 프롬프트 목록에서 저장된 프롬프트 선택 이벤트 등록
