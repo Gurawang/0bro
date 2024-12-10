@@ -422,10 +422,14 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
             console.log(`[연속 포스팅 ${i + 1}/${keywords.length}] 키워드: ${keyword}`);
 
             const topic = await resolvePostTopic(settings, keyword);
-            const postData = await generatePostData(userId, settings, topic);
-            const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
+            console.log(`[연속 포스팅] 생성된 주제: ${topic}`);
 
+            const postData = await generatePostData(userId, settings, topic);
+            console.log(`[연속 포스팅] 생성된 포스팅 데이터: ${postData.title}`);
+
+            const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
             console.log('[연속 포스팅] 블로그 인증 정보:', blogCredentials);
+
             const result = await postToBlog(settings.blogSelection, blogCredentials, postData);
             console.log('[연속 포스팅] 포스팅 결과:', result);
 
@@ -442,6 +446,7 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
         }
     }
 }
+
 
 // 예약 포스팅 처리
 async function handleScheduledPosting(jobId, userId, settings) {
@@ -502,46 +507,40 @@ function resolvePrompt(topic, settings) {
 
 // AI 콘텐츠 생성
 async function generatePostContent(userId, prompt, settings) {
-    const aiConfig = {
-        apiUrl: 'https://api.openai.com/v1/chat/completions',
-        model: settings.aiSelection,
-    };
-
-    // Firestore에서 사용자 API 키 로드
-    let apiKey;
     try {
         const userDoc = await db.collection('settings').doc(userId).get();
-        apiKey = userDoc.data()?.openAIKey;
+        const openAIKey = userDoc.data()?.openAIKey;
 
-        if (!apiKey) {
-            throw new Error('OpenAI API 키가 설정되지 않았습니다.');
+        if (!openAIKey) {
+            throw new Error('사용자의 OpenAI API 키가 누락되었습니다.');
         }
-    } catch (error) {
-        console.error('Firestore에서 API 키 로드 오류:', error.message);
-        throw new Error('API 키를 로드하는 중 오류가 발생했습니다.');
-    }
 
-    const requestData = {
-        model: aiConfig.model,
-        messages: [
-            { role: 'system', content: '당신은 훌륭한 블로그 글 작성가입니다.' },
-            { role: 'user', content: `언어: ${settings.language}\n문체: ${settings.tone}\n${settings.emojiToggle ? '이모티콘 포함' : ''}\n내용:\n${prompt}` },
-        ],
-        max_tokens: 1000,
-        temperature: 0.7,
-    };
+        const aiConfig = {
+            apiUrl: 'https://api.openai.com/v1/chat/completions',
+            model: settings.aiSelection,
+        };
 
-    try {
+        const requestData = {
+            model: aiConfig.model,
+            messages: [
+                { role: 'system', content: '당신은 훌륭한 블로그 글 작성가입니다.' },
+                { role: 'user', content: `언어: ${settings.language}\n문체: ${settings.tone}\n${settings.emojiToggle ? '이모티콘 포함' : ''}\n내용:\n${prompt}` },
+            ],
+            max_tokens: 1000,
+            temperature: 0.7,
+        };
+
         const response = await axios.post(aiConfig.apiUrl, requestData, {
-            headers: { Authorization: `Bearer ${apiKey}` },
+            headers: { Authorization: `Bearer ${openAIKey}` },
         });
 
         return response.data.choices[0].message.content.trim();
     } catch (error) {
-        console.error('OpenAI API 호출 오류:', error.response ? error.response.data : error.message);
-        throw new Error('OpenAI API 호출 실패');
+        console.error('AI 콘텐츠 생성 중 오류:', error.message);
+        throw error;
     }
 }
+
 
 
 // 이미지 처리
@@ -672,19 +671,36 @@ async function generatePostData(userId, settings, topic) {
 
 // 블로그 자격 증명 가져오기
 async function fetchBlogCredentials(userId, blogSelection) {
-    if (blogSelection === 'wordpress') {
-        const wordpressSnapshot = await db.collection('settings').doc(userId).collection('wordpress').get();
-        if (!wordpressSnapshot.empty) {
-            return wordpressSnapshot.docs[0].data();
+    try {
+        if (blogSelection === 'wordpress') {
+            const wordpressSnapshot = await db.collection('settings')
+                .doc(userId)
+                .collection('wordpress')
+                .doc('wordpress')
+                .get();
+            if (!wordpressSnapshot.exists) {
+                throw new Error('WordPress 자격 증명이 존재하지 않습니다.');
+            }
+            return wordpressSnapshot.data();
+        } else if (blogSelection === 'googleBlog') {
+            const googleSnapshot = await db.collection('settings')
+                .doc(userId)
+                .collection('googleBlog')
+                .doc('googleBlog')
+                .get();
+            if (!googleSnapshot.exists) {
+                throw new Error('Google 블로그 자격 증명이 존재하지 않습니다.');
+            }
+            return googleSnapshot.data();
+        } else {
+            throw new Error(`지원하지 않는 블로그 플랫폼입니다: ${blogSelection}`);
         }
-    } else if (blogSelection === 'googleBlog') {
-        const googleSnapshot = await db.collection('settings').doc(userId).collection('googleBlog').get();
-        if (!googleSnapshot.empty) {
-            return googleSnapshot.docs[0].data();
-        }
+    } catch (error) {
+        console.error('[fetchBlogCredentials 오류]:', error.message);
+        throw error;
     }
-    throw new Error('블로그 자격 증명을 가져올 수 없습니다.');
 }
+
 
 
 
