@@ -488,36 +488,52 @@ async function handleScheduledPosting(jobId, userId, settings) {
 
 // Firestore 데이터 불러오기
 async function getSettings(userId, blogSelection) {
-    const doc = await db.collection('settings').doc(userId).get(); // <-- 수정된 참조
+    const doc = await db.collection('settings').doc(userId).get(); // firestore -> db로 수정
     if (!doc.exists) {
         throw new Error('해당 사용자의 설정 데이터를 찾을 수 없습니다.');
     }
 
     const settings = doc.data();
-    console.log('Firestore에서 불러온 데이터:', settings);
+    console.log('Firestore에서 불러온 사용자 데이터:', settings); // 전체 데이터 로그
 
     if (blogSelection === 'wordpress') {
+        console.log('WordPress 관련 설정 확인 중...');
+        console.log('settings.wordpress:', settings.wordpress); // WordPress 설정 전체 로그
+        console.log('settings.wordpress.username:', settings.wordpress?.username); // Username 로그
+        console.log('settings.wordpress.appPassword:', settings.wordpress?.appPassword); // App Password 로그
+
         if (!settings.wordpress || !settings.wordpress.username || !settings.wordpress.appPassword) {
+            console.error('WordPress 설정 값이 누락되었습니다.'); // 에러 상황 로그
             throw new Error('WordPress 설정 값이 누락되었습니다.');
         }
+
         return {
             blogUrl: settings.wordpress.blogUrl,
             username: settings.wordpress.username,
             appPassword: settings.wordpress.appPassword,
         };
     } else if (blogSelection === 'googleBlog') {
+        console.log('Google Blog 관련 설정 확인 중...');
+        console.log('settings.googleBlog:', settings.googleBlog); // Google Blog 설정 전체 로그
+        console.log('settings.googleBlog.username:', settings.googleBlog?.username); // Username 로그
+        console.log('settings.googleBlog.apiKey:', settings.googleBlog?.apiKey); // API Key 로그
+
         if (!settings.googleBlog || !settings.googleBlog.username || !settings.googleBlog.apiKey) {
+            console.error('Google Blog 설정 값이 누락되었습니다.'); // 에러 상황 로그
             throw new Error('Google Blog 설정 값이 누락되었습니다.');
         }
+
         return {
             blogUrl: settings.googleBlog.blogUrl,
             username: settings.googleBlog.username,
             apiKey: settings.googleBlog.apiKey,
         };
     } else {
+        console.error('지원하지 않는 블로그 플랫폼입니다.'); // 지원하지 않는 플랫폼 로그
         throw new Error('지원하지 않는 블로그 플랫폼입니다.');
     }
 }
+
 
 // 워드프레스 포스팅 함수
 async function postToWordPress(settings, postData) {
