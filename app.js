@@ -2221,11 +2221,11 @@ function getCurrentSettings() {
     const parentSelection = document.querySelector('input[name="promptToggle"]:checked')?.value || "defaultPrompt";
     const savedPromptSelection = document.querySelector('input[name="savedPromptToggle"]:checked')?.value || null;
     
-    let content = ""; // 기본값 설정
+    let customPrompt = ""; // 기본값 설정
     if (parentSelection === "defaultPrompt") {
-        content = defaultPrompt; // 기본 프롬프트 적용
+        customPrompt = defaultPrompt; // 기본 프롬프트 적용
     } else if (parentSelection === "savedPromptParent" || parentSelection.startsWith("savedPrompt")) {
-        content = document.getElementById("savedPromptContent").value.trim(); // 사용자 프롬프트 내용
+        customPrompt = document.getElementById("savedPromptContent").value.trim(); // 사용자 프롬프트 내용
     }
 
     const useImage = document.getElementById("useImageToggle")?.checked || false;
@@ -2246,7 +2246,7 @@ function getCurrentSettings() {
         parentSelection,
         savedPromptSelection,
         title: document.getElementById("promptTitleInput")?.value.trim() || "",
-        content, // 사용자 프롬프트 내용 포함
+        customPrompt, // 사용자 프롬프트 내용 포함
         keywords, // 현재 키워드 포함
         language: document.querySelector('.language-button.selected')?.dataset.language || null,
         tone: document.querySelector('.tone-button.selected')?.dataset.tone || null,
@@ -2402,11 +2402,12 @@ async function generatePost() {
     }
 
     // 데이터 검증
-    if (!settings.title || !settings.content) {
-        console.error("프롬프트 데이터 누락:", { title: settings.title, content: settings.content });
+    if (!settings.title || !settings.customPrompt) {
+        console.error("프롬프트 데이터 누락:", { title: settings.title, customPrompt: settings.customPrompt });
         alert("프롬프트 제목 또는 내용이 누락되었습니다.");
         return;
     }
+
 
     console.log("생성 요청에 전달될 데이터:", {
         userId: auth.currentUser?.uid,
