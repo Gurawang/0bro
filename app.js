@@ -2258,9 +2258,7 @@ function getCurrentSettings() {
     const activeTimeButton = document.querySelector(".time-button.active")?.dataset.time || null;
     const customInterval = document.getElementById("customInterval")?.value || "";
     const timeButtonType = activeTimeButton ? "button" : customInterval ? "custom" : null;
-    const blogToggle = document.querySelector('input[name="blogToggle"]:checked');
-    const blogSelection = blogToggle?.dataset.platform || null;
-    const blogUrl = blogToggle?.value || null;
+    
 
     return {
         blogSelection,
