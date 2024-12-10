@@ -25,16 +25,19 @@ app.use(express.json({ limit: '10mb' })); // 요청 본문 크기를 최대 10MB
 
 // 공통 함수: Firestore에서 사용자 데이터 로드
 async function getUserData(userId) {
-    const doc = await db.collection('settings').doc(userId).get();
+    const docPath = `settings/${userId}`.replace(/\/+/g, '/'); // 중복된 슬래시 제거
+    const doc = await db.collection('settings').doc(docPath).get();
     if (!doc.exists) {
         throw new Error('사용자 데이터를 찾을 수 없습니다.');
     }
     return doc.data();
 }
 
+
 // Firestore에서 사용자 WordPress 데이터 로드
 async function getWordPressCredentials(userId) {
-    const doc = await db.collection('settings').doc(userId).collection('wordpress').doc('wordpress').get();
+    const docPath = `settings/${userId}/wordpress/wordpress`.replace(/\/+/g, '/'); // 중복된 슬래시 제거
+    const doc = await db.doc(docPath).get();
     if (!doc.exists) {
         throw new Error('WordPress 데이터를 찾을 수 없습니다.');
     }
@@ -669,21 +672,16 @@ async function fetchBlogCredentials(userId, blogSelection) {
     console.log('선택된 블로그 플랫폼:', blogSelection);
     try {
         if (blogSelection === 'wordpress') {
-            const wordpressSnapshot = await db.collection('settings')
-                .doc(userId)
-                .collection('wordpress')
-                .doc('wordpress')
-                .get();
-            if (!wordpressSnapshot.exists) {
-                throw new Error('WordPress 자격 증명이 존재하지 않습니다.');
-            }
-            return wordpressSnapshot.data();
+        const docPath = `settings/${userId}/wordpress/wordpress`.replace(/\/+/g, '/'); // 중복된 슬래시 제거
+        const wordpressSnapshot = await db.doc(docPath).get();
+        if (!wordpressSnapshot.exists) {
+            throw new Error('WordPress 자격 증명이 존재하지 않습니다.');
+        }
+        return wordpressSnapshot.data();
+    
         } else if (blogSelection === 'googleBlog') {
-            const googleSnapshot = await db.collection('settings')
-                .doc(userId)
-                .collection('googleBlog')
-                .doc('googleBlog')
-                .get();
+            const googleDocPath = `settings/${userId}/googleBlog/googleBlog`.replace(/\/+/g, '/');
+            const googleSnapshot = await db.doc(googleDocPath).get();
             if (!googleSnapshot.exists) {
                 throw new Error('Google Blog 자격 증명이 존재하지 않습니다.');
             }
