@@ -98,6 +98,7 @@ app.post('/proxy/wp-post', async (req, res) => {
     }
 
     try {
+        console.log('워드프레스 API 호출 중...');
         const response = await axios.post(
             `${blogUrl}/wp-json/wp/v2/posts`,
             {
@@ -108,10 +109,11 @@ app.post('/proxy/wp-post', async (req, res) => {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Basic ${Buffer.from(`${username}:${appPassword}`).toString('base64')}`,
+                    Authorization: `Basic ${Buffer.from(`${username}:${appPassword}`).toString('base64')}`, // 기본 인증
                 },
             }
         );
+        console.log('워드프레스 API 응답:', response.data);
 
         res.status(response.status).json({ success: true, data: response.data });
     } catch (error) {
@@ -158,7 +160,7 @@ app.post('/proxy/google-blog', async (req, res) => {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${googleApiKey}`,
+                    Authorization: `Bearer ${googleApiKey}`, // Google API 키 인증
                 },
             }
         );
@@ -174,6 +176,7 @@ app.post('/proxy/google-blog', async (req, res) => {
         }
     }
 });
+
 
 
 
@@ -487,10 +490,15 @@ async function resolvePostTopic(settings, keyword) {
 
 // 프롬프트 생성
 function resolvePrompt(topic, settings) {
-    return settings.promptSelection === 'defaultPrompt'
-        ? `다음 주제에 대한 블로그 글을 작성하세요: ${topic}`
-        : settings.customPrompt.replace('{{topic}}', topic);
+    if (settings.promptSelection === 'defaultPrompt') {
+        return `다음 주제에 대한 블로그 글을 작성하세요: ${topic}`;
+    }
+    if (settings.customPrompt) {
+        return settings.customPrompt.replace('{{topic}}', topic);
+    }
+    throw new Error('프롬프트 데이터가 누락되었습니다.');
 }
+
 
 // AI 콘텐츠 생성
 async function generatePostContent(prompt, settings) {
