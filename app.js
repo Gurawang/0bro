@@ -1579,38 +1579,19 @@ async function handleToggleChange(selectedToggle, platform, docId) {
 
             console.log("불러온 블로그 데이터:", data);
 
-            // 선택된 플랫폼 데이터 설정
-            if (blogSelection === "wordpress") {
-                const { username, appPassword } = data;
+            // 전역 변수에 저장
+            window.loadedPlatformData = {
+                blogSelection,
+                blogUrl,
+                username: data.username || "",
+                appPassword: data.appPassword || "",
+                blogId: data.blogId || "",
+                clientId: data.clientId || "",
+                clientSecret: data.clientSecret || "",
+                refreshToken: data.refreshToken || "",
+            };
 
-                // Firebase에 WordPress 정보 병합 저장
-                await db.collection("settings").doc(userId).set(
-                    {
-                        blogSelection,
-                        blogUrl,
-                        username,
-                        appPassword,
-                    },
-                    { merge: true }
-                );
-            } else if (blogSelection === "googleBlog") {
-                const { blogId, clientId, clientSecret, refreshToken } = data;
-
-                // Firebase에 Google Blog 정보 병합 저장
-                await db.collection("settings").doc(userId).set(
-                    {
-                        blogSelection,
-                        blogUrl,
-                        blogId,
-                        clientId,
-                        clientSecret,
-                        refreshToken,
-                    },
-                    { merge: true }
-                );
-            }
-
-            console.log("블로그 선택 정보가 저장되었습니다.");
+            console.log("선택된 블로그 데이터가 전역 변수에 저장되었습니다:", window.loadedPlatformData);
         } else {
             console.error("문서를 찾을 수 없습니다.");
         }
@@ -2309,17 +2290,21 @@ function getCurrentSettings() {
     console.log("현재 설정 데이터 가져오기");
     console.log("blogSelection:", blogSelection);
     console.log("blogUrl:", blogUrl);
+
+    // Firestore에서 불러온 데이터 반환
+    const settings = window.loadedPlatformData || {};
+    console.log("반환될 설정 데이터:", settings);
     
 
     return {
-        blogSelection, // 플랫폼 정보
-        blogUrl, // URL 정보
-        username: window.loadedPlatformData?.username || "", // Firestore에서 불러온 username
-        appPassword: window.loadedPlatformData?.appPassword || "", // Firestore에서 불러온 appPassword
-        blogId: window.loadedPlatformData?.blogId || "", // Firestore에서 불러온 blogId
-        clientId: window.loadedPlatformData?.clientId || "", // Firestore에서 불러온 clientId
-        clientSecret: window.loadedPlatformData?.clientSecret || "", // Firestore에서 불러온 clientSecret
-        refreshToken: window.loadedPlatformData?.refreshToken || "", // Firestore에서 불러온 refreshToken
+        blogSelection: settings.blogSelection || "",
+        blogUrl: settings.blogUrl || "",
+        username: settings.username || "",
+        appPassword: settings.appPassword || "",
+        blogId: settings.blogId || "",
+        clientId: settings.clientId || "",
+        clientSecret: settings.clientSecret || "",
+        refreshToken: settings.refreshToken || "",
         topicSelection: document.querySelector('input[name="topicToggle"]:checked')?.value || null,
         manualTopic: document.getElementById("topicInput")?.value || "",
         rssInput: document.getElementById("rssInput")?.value || "",
