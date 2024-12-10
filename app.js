@@ -1735,11 +1735,17 @@ async function handleSavedPromptSelect(promptId) {
             const data = doc.data();
             document.getElementById("promptTitleInput").value = data.title;
             document.getElementById("savedPromptContent").value = data.content;
+
+            // 선택한 프롬프트를 UI에 표시
+            document.querySelector(`input[name="savedPromptToggle"][value="savedPrompt-${docId}"]`).checked = true;
+        } else {
+            console.error("선택한 프롬프트를 찾을 수 없습니다.");
         }
     } catch (error) {
         console.error("프롬프트 선택 오류:", error);
     }
 }
+
 
 // 프롬프트 목록에서 저장된 프롬프트 선택 이벤트 등록
 document.addEventListener("DOMContentLoaded", () => {
@@ -2199,8 +2205,13 @@ function getCurrentSettings() {
     
     const parentSelection = document.querySelector('input[name="promptToggle"]:checked')?.value || "defaultPrompt";
     const savedPromptSelection = document.querySelector('input[name="savedPromptToggle"]:checked')?.value || null;
-    const title = document.getElementById("promptTitleInput").value.trim();
-    const content = document.getElementById("savedPromptContent").value.trim();
+
+    let content = ""; // 기본값 설정
+    if (parentSelection === "defaultPrompt") {
+        content = defaultPrompt; // 기본 프롬프트 적용
+    } else if (parentSelection === "savedPromptParent" || parentSelection.startsWith("savedPrompt")) {
+        content = document.getElementById("savedPromptContent").value.trim(); // 사용자 프롬프트 내용
+    }
 
     const useImage = document.getElementById("useImageToggle")?.checked || false;
     const imageOption = document.querySelector('input[name="imageOption"]:checked')?.value || null;
@@ -2219,8 +2230,8 @@ function getCurrentSettings() {
         rssInput: document.getElementById("rssInput")?.value || "",
         parentSelection,
         savedPromptSelection,
-        title,
-        content,
+        title: document.getElementById("promptTitleInput")?.value.trim() || "",
+        content, // 사용자 프롬프트 내용 포함
         keywords, // 현재 키워드 포함
         language: document.querySelector('.language-button.selected')?.dataset.language || null,
         tone: document.querySelector('.tone-button.selected')?.dataset.tone || null,
@@ -2375,10 +2386,10 @@ async function generatePost() {
     }
 
     // 프롬프트 검증
-        if (!settings.title || !settings.content) {
-            alert('프롬프트 제목과 내용을 입력하세요.');
-            return;
-        }
+    if (!settings.content) {
+        alert("프롬프트 내용이 없습니다. 프롬프트를 선택하거나 내용을 입력하세요.");
+        return;
+    }
 
     if (!settings.topicSelection) {
         alert("주제 선택이 필요합니다.");
