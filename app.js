@@ -2258,8 +2258,9 @@ function getCurrentSettings() {
     const activeTimeButton = document.querySelector(".time-button.active")?.dataset.time || null;
     const customInterval = document.getElementById("customInterval")?.value || "";
     const timeButtonType = activeTimeButton ? "button" : customInterval ? "custom" : null;
-    const blogSelection = document.querySelector('input[name="blogToggle"]:checked')?.dataset.platform || null;
-    const blogUrl = document.querySelector('input[name="blogToggle"]:checked')?.value || null;
+    const blogToggle = document.querySelector('input[name="blogToggle"]:checked');
+    const blogSelection = blogToggle?.dataset.platform || null;
+    const blogUrl = blogToggle?.value || null;
 
     return {
         blogSelection,
@@ -2335,7 +2336,7 @@ function setCurrentSettings(settingsData) {
 
     if (settingsData.blogSelection && settingsData.blogUrl) {
         const blogToggle = document.querySelector(
-            `input[name="blogToggle"][value="${settingsData.blogUrl}"][data-platform="${settingsData.blogSelection}"]`
+            `input[name="blogToggle"][value="${settingsData.blogUrl}"]`
         );
         if (blogToggle) {
             blogToggle.checked = true;
