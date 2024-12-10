@@ -2265,7 +2265,7 @@ async function loadLastAppliedSettings() {
             if (savedSettings.blogSelection === "wordpress") {
                 const wordpressDoc = await userSettingsRef
                     .collection("wordpress")
-                    .doc(savedSettings.blogUrl) // blogUrl을 문서 ID로 사용
+                    .doc(savedSettings.siteUrl) // blogUrl을 문서 ID로 사용
                     .get();
 
                 if (wordpressDoc.exists) {
