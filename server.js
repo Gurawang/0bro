@@ -329,11 +329,11 @@ app.post('/api/generate-post', async (req, res) => {
         }
 
         // customPrompt 값 확인
-        if (!settings.customPrompt) {
-            console.error('customPrompt가 전달되지 않았습니다.');
+        if (!settings.content || settings.content.trim() === "") {
+            console.error('프롬프트 내용이 없습니다.');
             return res.status(400).json({ success: false, error: '프롬프트 내용이 없습니다.' });
         }
-        console.log('전달된 customPrompt:', settings.customPrompt);
+        console.log('전달된 프롬프트 내용:', settings.content);
 
         // 작업 ID 생성 및 저장
         const jobId = `${userId}-${Date.now()}`;
@@ -341,10 +341,12 @@ app.post('/api/generate-post', async (req, res) => {
 
         await db.collection('posting-jobs').doc(jobId).set({
             userId,
-            settings,
             keywords,
             status: '진행 중',
+            aiSelection: settings.aiSelection || 'gpt-4-turbo',
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            postingOption: settings.postingOption,
+            schedule: settings.schedule || null,
         });
         console.log('Firestore 작업 생성 완료');
 
@@ -354,13 +356,22 @@ app.post('/api/generate-post', async (req, res) => {
 
         // 포스팅 옵션에 따라 처리
         if (settings.postingOption.auto) {
-            console.log('연속 포스팅 작업 시작');
+            console.log('연속 포스팅 작업 시작:', { jobId, userId, settings, keywords });
+            if (!keywords || keywords.length === 0) {
+                throw new Error('연속 포스팅을 위한 키워드가 누락되었습니다.');
+            }
             await handleAutoPosting(jobId, userId, settings, keywords);
         } else if (settings.postingOption.schedule) {
-            console.log('예약 포스팅 작업 시작');
+            console.log('예약 포스팅 작업 시작:', { jobId, userId, settings });
+            if (!settings.schedule || !settings.schedule.year || !settings.schedule.month || !settings.schedule.day) {
+                throw new Error('예약 포스팅을 위한 일정 정보가 누락되었습니다.');
+            }
             await handleScheduledPosting(jobId, userId, settings);
         } else {
-            console.log('단일 포스팅 작업 시작');
+            console.log('단일 포스팅 작업 시작:', { jobId, userId, settings, keyword: keywords[0] });
+            if (!keywords || !keywords[0]) {
+                throw new Error('단일 포스팅을 위한 키워드가 누락되었습니다.');
+            }
             await handleSinglePosting(jobId, userId, settings, keywords[0]);
         }
 
@@ -369,8 +380,12 @@ app.post('/api/generate-post', async (req, res) => {
         console.log('작업 완료');
         res.json({ success: true, jobId });
     } catch (error) {
-        console.error('작업 처리 중 오류:', error.message);
-        res.status(500).json({ success: false, error: '작업 처리 실패' });
+        console.error('작업 처리 중 오류:', {
+            message: error.message,
+            stack: error.stack,
+            data: req.body,
+        });
+        res.status(500).json({ success: false, error: error.message || '작업 처리 실패' });
     }
 });
 
