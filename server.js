@@ -666,6 +666,7 @@ async function generatePostData(userId, settings, topic) {
 
 // 블로그 자격 증명 가져오기
 async function fetchBlogCredentials(userId, blogSelection) {
+    console.log('선택된 블로그 플랫폼:', blogSelection);
     try {
         if (blogSelection === 'wordpress') {
             const wordpressSnapshot = await db.collection('settings')
@@ -687,17 +688,6 @@ async function fetchBlogCredentials(userId, blogSelection) {
                 throw new Error('Google Blog 자격 증명이 존재하지 않습니다.');
             }
             return googleSnapshot.data();
-        } else if (blogSelection.startsWith('https://')) {
-            // 사용자 정의 블로그 URL 처리 로직 추가
-            const customBlogSnapshot = await db.collection('settings')
-                .doc(userId)
-                .collection('customBlogs')
-                .doc(blogSelection)
-                .get();
-            if (!customBlogSnapshot.exists) {
-                throw new Error(`지원하지 않는 블로그 플랫폼입니다: ${blogSelection}`);
-            }
-            return customBlogSnapshot.data();
         } else {
             throw new Error(`알 수 없는 블로그 플랫폼입니다: ${blogSelection}`);
         }
