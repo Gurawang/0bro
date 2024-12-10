@@ -2245,10 +2245,9 @@ async function loadLastAppliedSettings() {
     }
 
     try {
-        const userSettingsRef = db.collection("settings").doc(userId);
-
-        // 가장 최근 저장된 설정 불러오기
-        const snapshot = await userSettingsRef
+        const snapshot = await db
+            .collection("settings")
+            .doc(userId)
             .collection("savedSettings")
             .orderBy("timestamp", "desc") // 최신순으로 정렬
             .limit(1) // 가장 최근 항목 1개만 가져오기
@@ -2256,42 +2255,12 @@ async function loadLastAppliedSettings() {
 
         if (!snapshot.empty) {
             const doc = snapshot.docs[0];
-            const savedSettings = doc.data();
+            const settingsData = doc.data();
 
-            console.log("가장 최근 저장된 설정이 로드되었습니다:", savedSettings);
+            // 불러온 설정을 UI에 적용
+            setCurrentSettings(settingsData);
 
-            // 플랫폼과 주소를 기준으로 추가 정보 불러오기
-            if (savedSettings.blogSelection && savedSettings.blogUrl) {
-                if (savedSettings.blogSelection === "wordpress") {
-                    const wordpressDoc = await userSettingsRef
-                        .collection("wordpress")
-                        .doc(savedSettings.blogUrl)
-                        .get();
-
-                    if (wordpressDoc.exists) {
-                        const wordpressSettings = wordpressDoc.data();
-                        setCurrentSettings({ ...savedSettings, ...wordpressSettings });
-                        console.log("WordPress 설정이 로드되었습니다:", wordpressSettings);
-                    } else {
-                        console.log("WordPress 설정을 찾을 수 없습니다.");
-                    }
-                } else if (savedSettings.blogSelection === "googleBlog") {
-                    const googleBlogDoc = await userSettingsRef
-                        .collection("googleBlog")
-                        .doc(savedSettings.blogUrl)
-                        .get();
-
-                    if (googleBlogDoc.exists) {
-                        const googleBlogSettings = googleBlogDoc.data();
-                        setCurrentSettings({ ...savedSettings, ...googleBlogSettings });
-                        console.log("Google Blog 설정이 로드되었습니다:", googleBlogSettings);
-                    } else {
-                        console.log("Google Blog 설정을 찾을 수 없습니다.");
-                    }
-                } else {
-                    console.log("지원되지 않는 블로그 플랫폼입니다.");
-                }
-            }
+            console.log("마지막 설정이 적용되었습니다:", doc.id);
 
             // 드롭다운에 선택 표시
             const dropdown = document.getElementById("savedSettingsDropdown");
@@ -2299,10 +2268,10 @@ async function loadLastAppliedSettings() {
                 dropdown.value = doc.id;
             }
         } else {
-            console.log("저장된 설정이 없습니다.");
+            console.log("적용할 설정이 없습니다.");
         }
     } catch (error) {
-        console.error("설정 불러오기 오류:", error);
+        console.error("마지막 설정 불러오기 오류:", error);
     }
 }
 
