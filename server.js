@@ -578,44 +578,45 @@ async function postToGoogleBlog(blogId, clientId, clientSecret, refreshToken, po
 }
 
 // 포스팅 실행 함수
-async function handlePosting(userId, blogSelection, blogUrl, postData) {
+async function handlePosting(userId, blogSelection, postData) {
     try {
         console.log("포스팅 실행 함수 시작");
         console.log("User ID:", userId);
         console.log("Blog Selection:", blogSelection);
-        console.log("Blog URL:", blogUrl);
         console.log("Post Data:", postData);
 
-        const userSettings = db.collection('settings').doc(userId);
-        let settings = null; // 설정 객체 초기화
+        // Firestore에서 사용자 설정 불러오기
+        const userSettingsRef = db.collection('settings').doc(userId);
+        const userDoc = await userSettingsRef.get();
+
+        if (!userDoc.exists) {
+            console.error("사용자 설정을 찾을 수 없습니다.");
+            throw new Error('사용자 설정을 찾을 수 없습니다.');
+        }
+
+        const settings = userDoc.data();
+        console.log("불러온 사용자 설정:", settings);
 
         if (blogSelection === 'wordpress') {
-            console.log("WordPress 설정 불러오기 시작");
+            console.log("WordPress 설정 확인 중...");
             
-            const username = await userSettings.username;
-            const appPassword = await userSettings.appPassword;
+            if (!settings.username || !settings.appPassword || !settings.blogUrl) {
+                console.error("WordPress 설정 데이터 누락:", settings);
+                throw new Error('WordPress 설정 데이터가 누락되었습니다.');
+            }
 
             console.log("WordPress 포스팅 데이터 확인:");
-            
+            console.log("Blog URL:", settings.blogUrl);
             console.log("Username:", settings.username);
             console.log("App Password:", settings.appPassword);
 
-            await postToWordPress(blogUrl, username, appPassword, postData);
+            await postToWordPress(settings.blogUrl, settings.username, settings.appPassword, postData);
 
         } else if (blogSelection === 'googleBlog') {
-            console.log("Google Blog 설정 불러오기 시작");
-            const googleBlogDoc = await userSettingsRef.collection('googleBlog').doc(blogUrl).get();
-
-            if (!googleBlogDoc.exists) {
-                console.error("Google Blog 설정을 찾을 수 없습니다. Blog URL:", blogUrl);
-                throw new Error('Google Blog 설정을 찾을 수 없습니다.');
-            }
-
-            settings = googleBlogDoc.data();
-            console.log("Google Blog 설정 로드 성공:", settings);
-
+            console.log("Google Blog 설정 확인 중...");
+            
             if (!settings.blogId || !settings.clientId || !settings.clientSecret || !settings.refreshToken) {
-                console.error("Google Blog 설정 데이터 누락. 로드된 설정:", settings);
+                console.error("Google Blog 설정 데이터 누락:", settings);
                 throw new Error('Google Blog 설정 데이터가 누락되었습니다.');
             }
 
@@ -638,6 +639,7 @@ async function handlePosting(userId, blogSelection, blogUrl, postData) {
         throw error;
     }
 }
+
 
 
 async function loadSettings(userId, blogSelection, blogUrl) {
