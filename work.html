@@ -48,9 +48,10 @@
         <section class="section" id="topic-selection">
             <div class="section-header">
                 <h2>2. 주제 선택</h2>
-                <a href="https://example-keyword-site.com" target="_blank" class="keyword-link">키워드 검색</a>
+                <a href="https://whereispost.com/keyword/" target="_blank" class="keyword-link">키워드 검색</a>
             </div>
 
+            <!-- 실시간 키워드 옵션 -->
             <div class="topic-option">
                 <span>실시간 키워드 채택</span>
                 <label class="toggle-label">
@@ -60,6 +61,7 @@
                 </label>
             </div>
 
+            <!-- 주제 직접 입력 옵션 -->
             <div class="topic-option">
                 <span>주제 직접 입력</span>
                 <label class="toggle-label">
@@ -68,9 +70,16 @@
                 </label>
             </div>
             <div id="manual-topic-input" class="input-container" style="display: none;">
-                <input type="text" id="topicInput" placeholder="주제를 입력하세요">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="topicInput" placeholder="키워드를 입력하고 Enter를 누르세요" style="flex: 1;">
+                    <button class="addKeywordButton" onclick="addKeywords()">추가</button>
+
+                </div>
+                <ul id="keywordList"></ul>
             </div>
 
+
+            <!-- RSS 크롤링 옵션 -->
             <div class="topic-option">
                 <span>크롤링</span>
                 <label class="toggle-label">
@@ -83,29 +92,41 @@
             </div>
         </section>
 
+
+
         <hr>
 
-        <!-- 3. 프롬프트 -->
+        <!-- 프롬프트 섹션 -->
         <section class="section" id="prompt-section">
             <h2>3. 프롬프트</h2>
 
-            <!-- 기본 프롬프트 선택 -->
+            <!-- 프롬프트 선택 -->
+
             <div class="prompt-option">
                 <span>기본 프롬프트</span>
                 <label class="toggle-label">
                     <input type="radio" name="promptToggle" value="defaultPrompt"
+                        onchange="handlePromptToggleChange(this)" checked>
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+            <div class="prompt-option">
+                <span>사용자 프롬프트</span>
+                <label class="toggle-label">
+                    <input type="radio" name="promptToggle" value="savedPrompt"
                         onchange="handlePromptToggleChange(this)">
                     <span class="toggle-switch"></span>
                 </label>
             </div>
 
+
             <!-- 저장된 프롬프트 목록 -->
-            <div id="saved-prompt-list-container">
+            <div id="saved-prompt-list-container" style="display: none;">
                 <ul id="savedPromptList"></ul>
             </div>
 
-            <!-- 입력 및 버튼 -->
-            <div id="prompt-editor">
+            <!-- 프롬프트 편집 섹션 -->
+            <div id="prompt-editor" style="display: none;">
                 <div class="prompt-input-group">
                     <label for="promptTitleInput">제목:</label>
                     <input type="text" id="promptTitleInput" placeholder="프롬프트 제목 입력">
@@ -120,6 +141,8 @@
                 </div>
             </div>
         </section>
+
+
 
 
 
@@ -244,13 +267,13 @@
             </div>
         </section>
 
-        <hr>
+        <!-- <hr> -->
 
         <!-- 6. AI 선택 -->
-        <section class="section" id="ai-selection">
+        <!-- <section class="section" id="ai-selection">
             <h2>6. AI 선택</h2>
-            <div id="ai-options">
-                <div class="ai-option">
+            <div id="ai-options"> -->
+        <!-- <div class="ai-option">
                     <span>GPT 3.5 Turbo</span>
                     <label class="toggle-label">
                         <input type="radio" name="aiToggle" value="gpt-3.5-turbo" onchange="handleAiToggleChange(this)">
@@ -263,22 +286,24 @@
                         <input type="radio" name="aiToggle" value="gpt-4" onchange="handleAiToggleChange(this)">
                         <span class="toggle-switch"></span>
                     </label>
-                </div>
-                <div class="ai-option">
-                    <span>GPT 4 Turbo</span>
+                </div> -->
+        <!-- <div class="ai-option selected">
+                    <span>GPT</span>
                     <label class="toggle-label">
-                        <input type="radio" name="aiToggle" value="gpt-4-turbo" onchange="handleAiToggleChange(this)">
+                        <input type="radio" name="aiToggle" value="gpt-4-turbo" onchange="handleAiToggleChange(this)"
+                            checked>
                         <span class="toggle-switch"></span>
                     </label>
                 </div>
                 <div class="ai-option">
-                    <span>Gemini 1</span>
+                    <span>Gemini(준비중)</span>
                     <label class="toggle-label">
-                        <input type="radio" name="aiToggle" value="gemini-1" onchange="handleAiToggleChange(this)">
+                        <input type="radio" name="aiToggle" value="gemini-1" onchange="handleAiToggleChange(this)"
+                            disabled>
                         <span class="toggle-switch"></span>
                     </label>
-                </div>
-                <div class="ai-option">
+                </div> -->
+        <!-- <div class="ai-option">
                     <span>Gemini 1.5 flash</span>
                     <label class="toggle-label">
                         <input type="radio" name="aiToggle" value="gemini-1.5-flash"
@@ -300,16 +325,16 @@
                             onchange="handleAiToggleChange(this)">
                         <span class="toggle-switch"></span>
                     </label>
-                </div>
-            </div>
-        </section>
+                </div> -->
+        <!-- </div>
+        </section> -->
 
 
         <hr>
 
         <!-- 7. 포스팅 -->
         <section class="section" id="auto-posting">
-            <h2>7. 포스팅</h2>
+            <h2>6. 포스팅</h2>
 
             <!-- 연속 포스팅 사용 옵션 -->
             <div class="auto-posting-toggle">
@@ -381,7 +406,7 @@
 
         <!-- 8. 광고 삽입 -->
         <section class="section" id="ads-insertion">
-            <h2>8. 광고 삽입</h2>
+            <h2>7. 광고 삽입</h2>
 
             <!-- 쿠팡 파트너스 옵션 -->
             <div class="ads-option">

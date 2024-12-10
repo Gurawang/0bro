@@ -416,10 +416,11 @@ async function router(path) {
             setTimeout(loadSavedPrompts, 0); // 프롬프트 불러오기
             setTimeout(loadSavedSettings, 0);
             setTimeout(loadLastAppliedSettings, 1000);
-            
             break;
         case "/docs":
-            page = "<h2>나의 작업 페이지</h2><br><hr><br><p>블로그 생성 시 현재 페이지에 진행중인 작업 및 히스토리가 표시됨. 여러개의 작업을 동시에 진행할때 어떤 작업이 진행되고 있는지 확인하고 관리할 수 있는 페이지. 생성된 블로그의 미리보기 및 수정 기능 포함.</p>";
+            page = await fetchPage("docs.html");
+            content.innerHTML = page;
+            loadPostHistory();
             break;
         case "/settings":
             // 매번 settings.html을 로드하여 초기화
@@ -566,10 +567,7 @@ function showContent(contentType) {
                         <p>OpenAI</p>
                         <span class="status">확인 중...</span>
                     </div>
-                    <div class="status-box" id="statusGemini">
-                        <p>Gemini</p>
-                        <span class="status">확인 중...</span>
-                    </div>
+                    
                     <div class="status-box" id="statusGoogleAPI">
                         <p>Google API</p>
                         <span class="status">확인 중...</span>
@@ -600,6 +598,13 @@ function showContent(contentType) {
                     </div>
                 </div>
             `;
+            // gemini 추가 시 아래 코드 삽입
+            // <div class="status-box" id="statusGemini">
+            //             <p>Gemini</p>
+            //             <span class="status">확인 중...</span>
+            //         </div>
+
+
             // 3초 후에 '확인 중...' 상태가 지속되면 checkAPIConnections 실행
             setTimeout(() => {
                 const statusElements = settingsContent.querySelectorAll(".status-box .status");
@@ -1554,27 +1559,79 @@ function handleToggleChange(selectedToggle) {
 }
 
 
+// 키워드 저장용 배열
+let keywords = [];
+
+
+// 토글 변경 핸들러
 function handleTopicToggleChange(selectedToggle) {
     const toggles = document.querySelectorAll("input[name='topicToggle']");
     const manualTopicInput = document.getElementById("manual-topic-input");
     const rssCrawlInput = document.getElementById("rss-crawl-input");
 
-    // 모든 입력창을 숨기고, 선택한 토글에 따라 입력창을 표시
+    // 모든 입력창 초기화
     manualTopicInput.style.display = "none";
     rssCrawlInput.style.display = "none";
 
+    // 선택한 토글 활성화
     toggles.forEach((toggle) => {
         if (toggle !== selectedToggle) {
             toggle.checked = false;
         }
     });
 
+    // 선택된 옵션에 따라 입력창 표시
     if (selectedToggle.value === "manualTopic") {
         manualTopicInput.style.display = "block";
     } else if (selectedToggle.value === "rssCrawl") {
         rssCrawlInput.style.display = "block";
     }
 }
+
+// 키워드 추가
+function addKeywords() {
+    const topicInput = document.getElementById("topicInput");
+    const inputKeywords = topicInput.value.split(",").map((kw) => kw.trim()).filter(Boolean);
+
+    inputKeywords.forEach((keyword) => {
+        if (!keywords.includes(keyword)) {
+            keywords.push(keyword);
+        }
+    });
+
+    renderKeywords();
+    topicInput.value = ""; // 입력창 초기화
+}
+
+// 키워드 삭제
+function deleteKeyword(index) {
+    keywords.splice(index, 1);
+    renderKeywords();
+}
+
+// 키워드 목록 렌더링
+function renderKeywords() {
+    const keywordList = document.getElementById("keywordList");
+    keywordList.innerHTML = ""; // 기존 목록 초기화
+
+    keywords.forEach((keyword, index) => {
+        const li = document.createElement("li");
+        li.textContent = keyword;
+        li.classList.add("normal");
+
+        // 삭제 버튼 추가
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "삭제";
+        deleteBtn.onclick = (event) => {
+            event.stopPropagation(); // 클릭 이벤트 방지
+            deleteKeyword(index);
+        };
+        li.appendChild(deleteBtn);
+
+        keywordList.appendChild(li);
+    });
+}
+
 
 
 // 기본 프롬프트 내용
@@ -1589,118 +1646,116 @@ let defaultPrompt = `SEO에 최적화된 블로그 글 생성:\n\n
 8. 독자의 관심을 유도하기 위한 질문 또는 의견 유도 문구를 추가합니다.\n
 9. SEO를 위한 메타 설명, 제목, 및 적절한 태그를 함께 생성합니다.`;
 
-// 프롬프트 토글 핸들러
+
+// 프롬프트 토글 변경 핸들러
 function handlePromptToggleChange(toggle) {
+    const savedPromptListContainer = document.getElementById("saved-prompt-list-container");
+    const promptEditor = document.getElementById("prompt-editor");
     const titleInput = document.getElementById("promptTitleInput");
     const contentTextarea = document.getElementById("savedPromptContent");
-    const saveButton = document.getElementById("savePromptButton");
-    const deleteButton = document.getElementById("deletePromptButton");
+
+    // 초기화
+    savedPromptListContainer.style.display = "none";
+    promptEditor.style.display = "none";
+    titleInput.value = "";
+    contentTextarea.value = "";
 
     if (toggle.value === "defaultPrompt") {
         // 기본 프롬프트 선택 처리
-        titleInput.value = "기본 프롬프트";
-        contentTextarea.value = defaultPrompt;
+        contentTextarea.value = defaultPrompt; // 기본 프롬프트 내용 설정
         titleInput.disabled = true;
         contentTextarea.disabled = true;
-        saveButton.disabled = true;
-        deleteButton.disabled = true;
 
         // 저장된 프롬프트 선택 해제
-        document.querySelectorAll('input[name="savedPromptToggle"]').forEach(radio => {
+        const savedPromptRadios = document.querySelectorAll('input[name="savedPromptToggle"]');
+        savedPromptRadios.forEach((radio) => {
             radio.checked = false;
         });
-    } else {
-        // 저장된 프롬프트 선택 처리
-        const promptId = toggle.value;
+    } else if (toggle.value === "savedPromptParent") {
+        // 사용자 프롬프트 선택 처리 (저장된 프롬프트 표시)
+        savedPromptListContainer.style.display = "block";
         titleInput.disabled = false;
         contentTextarea.disabled = false;
-        saveButton.disabled = false;
-        deleteButton.disabled = false;
-
-        // 기본 프롬프트 선택 해제
-        const defaultPromptRadio = document.querySelector('input[name="promptToggle"][value="defaultPrompt"]');
-        if (defaultPromptRadio) defaultPromptRadio.checked = false;
-
-        handleSavedPromptSelect(promptId);
+    } else if (toggle.value.startsWith("savedPrompt")) {
+        // 저장된 프롬프트 선택 처리
+        handleSavedPromptSelect(toggle.value);
+        savedPromptListContainer.style.display = "block"; // 부모 사용자 프롬프트 유지
+        promptEditor.style.display = "block";
+        titleInput.disabled = false;
+        contentTextarea.disabled = false;
     }
-
-    console.log("Toggle changed:", toggle.value);
 }
 
-// 저장된 프롬프트 목록 로드
+
+// 저장된 프롬프트 불러오기
 async function loadSavedPrompts() {
     const userId = auth.currentUser?.uid;
     const savedPromptList = document.getElementById("savedPromptList");
-
-    savedPromptList.innerHTML = ""; // 기존 목록 초기화
+    savedPromptList.innerHTML = ""; // 기존 내용 초기화
 
     try {
         const snapshot = await db.collection("settings").doc(userId).collection("prompts").get();
+        if (snapshot.empty) {
+            savedPromptList.innerHTML = "<li>저장된 프롬프트가 없습니다.</li>";
+            return;
+        }
+
         snapshot.forEach((doc) => {
             const data = doc.data();
             const listItem = document.createElement("li");
-            listItem.className = "saved-prompt-item";
+            listItem.classList.add("saved-prompt-item");
 
             listItem.innerHTML = `
-                <span>${data.title}</span>
+                <div class="prompt-details">
+                    <span class="prompt-title">${data.title}</span>
+                </div>
                 <label class="toggle-label">
-                    <input type="radio" name="savedPromptToggle" value="${doc.id}" onchange="handlePromptToggleChange(this)">
+                    <input type="radio" name="savedPromptToggle" value="savedPrompt-${doc.id}" onchange="handlePromptToggleChange(this)">
                     <span class="toggle-switch"></span>
                 </label>
             `;
+
             savedPromptList.appendChild(listItem);
         });
-        console.log("Saved prompts loaded:", snapshot.docs.map(doc => doc.id));
+
+        console.log("저장된 프롬프트를 성공적으로 불러왔습니다.");
     } catch (error) {
-        console.error("프롬프트 목록 불러오기 오류:", error);
+        console.error("프롬프트 불러오기 오류:", error);
+        savedPromptList.innerHTML = "<li>프롬프트를 불러오는 중 오류가 발생했습니다.</li>";
     }
 }
 
-// 저장된 프롬프트 선택
+// 선택한 저장된 프롬프트 불러오기
 async function handleSavedPromptSelect(promptId) {
     const userId = auth.currentUser?.uid;
-    const titleInput = document.getElementById("promptTitleInput");
-    const contentTextarea = document.getElementById("savedPromptContent");
-
     try {
-        const doc = await db.collection("settings").doc(userId).collection("prompts").doc(promptId).get();
+        const docId = promptId.replace("savedPrompt-", ""); // ID 추출
+        const doc = await db.collection("settings").doc(userId).collection("prompts").doc(docId).get();
         if (doc.exists) {
             const data = doc.data();
-            titleInput.value = data.title || "";
-            contentTextarea.value = data.content || "";
-        } else {
-            console.error("선택된 프롬프트가 존재하지 않습니다.");
+            document.getElementById("promptTitleInput").value = data.title;
+            document.getElementById("savedPromptContent").value = data.content;
         }
     } catch (error) {
-        console.error("프롬프트 내용 불러오기 오류:", error);
+        console.error("프롬프트 선택 오류:", error);
     }
 }
 
+// 프롬프트 목록에서 저장된 프롬프트 선택 이벤트 등록
+document.addEventListener("DOMContentLoaded", () => {
+    const savedPromptList = document.getElementById("savedPromptList");
 
-// 프롬프트 목록에서 저장된 프롬프트 선택 시 상태 활성화
-const savedPromptList = document.getElementById("savedPromptList");
+    if (savedPromptList) {
+        savedPromptList.addEventListener("change", (event) => {
+            const selectedPromptToggle = event.target;
 
-if (savedPromptList) {
-    savedPromptList.addEventListener("change", (event) => {
-        const selectedPromptToggle = event.target;
-
-        // 프롬프트 토글인지 확인
-        if (selectedPromptToggle.name === "savedPromptToggle") {
-            const titleInput = document.getElementById("promptTitleInput");
-            const contentTextarea = document.getElementById("savedPromptContent");
-            const saveButton = document.getElementById("savePromptButton");
-            const deleteButton = document.getElementById("deletePromptButton");
-
-            titleInput.disabled = false;
-            contentTextarea.disabled = false;
-            saveButton.disabled = false;
-            deleteButton.disabled = false;
-
-            // 선택한 프롬프트 내용 로드
-            handleSavedPromptSelect(selectedPromptToggle.value);
-        }
-    });
-}
+            // 프롬프트 토글인지 확인
+            if (selectedPromptToggle.name === "promptToggle") {
+                handlePromptToggleChange(selectedPromptToggle);
+            }
+        });
+    }
+});
 
 
 
@@ -1718,48 +1773,79 @@ async function savePrompt() {
     }
 
     try {
-        const snapshot = await db.collection("settings").doc(userId).collection("prompts").get();
-        if (snapshot.size >= 5) {
-            alert("프롬프트는 최대 5개까지만 저장할 수 있습니다.");
-            return;
+        const promptsCollection = db.collection("settings").doc(userId).collection("prompts");
+
+        // 동일한 제목의 프롬프트가 있는지 확인
+        const snapshot = await promptsCollection.where("title", "==", titleInput).get();
+
+        if (!snapshot.empty) {
+            // 기존 프롬프트 업데이트
+            const docId = snapshot.docs[0].id;
+            await promptsCollection.doc(docId).update({
+                content: contentInput,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+            alert("프롬프트가 업데이트되었습니다.");
+        } else {
+            // 새로운 프롬프트 추가
+            const newPrompt = {
+                title: titleInput,
+                content: contentInput,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+
+            const totalSnapshot = await promptsCollection.get();
+            if (totalSnapshot.size >= 5) {
+                alert("프롬프트는 최대 5개까지만 저장할 수 있습니다.");
+                return;
+            }
+
+            await promptsCollection.add(newPrompt);
+            alert("새로운 프롬프트가 저장되었습니다.");
         }
 
-        const newPrompt = {
-            title: titleInput,
-            content: contentInput,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        };
-
-        await db.collection("settings").doc(userId).collection("prompts").add(newPrompt);
-
-        
+        // 목록 새로 고침
         await loadSavedPrompts();
     } catch (error) {
         console.error("프롬프트 저장 오류:", error);
+        alert("프롬프트 저장 중 오류가 발생했습니다.");
     }
 }
+
 
 // 프롬프트 삭제
 async function deletePrompt() {
-    const selectedPrompt = document.querySelector('input[name="promptToggle"]:checked');
+    const selectedPrompt = document.querySelector('input[name="savedPromptToggle"]:checked'); // 저장된 프롬프트 토글 확인
 
-    if (!selectedPrompt || selectedPrompt.value === "defaultPrompt") {
-        alert("기본 프롬프트는 삭제할 수 없습니다.");
+    if (!selectedPrompt) {
+        alert("삭제할 프롬프트를 선택하세요.");
         return;
     }
 
-    const promptId = selectedPrompt.value;
+    // Firestore 문서 ID 추출
+    const promptId = selectedPrompt.value.replace("savedPrompt-", ""); // 'savedPrompt-' 제거
     const userId = auth.currentUser?.uid;
 
+    if (!userId) {
+        alert("사용자 인증이 필요합니다.");
+        return;
+    }
+
     try {
+        // Firestore에서 해당 문서 삭제
         await db.collection("settings").doc(userId).collection("prompts").doc(promptId).delete();
 
-        
+        alert("프롬프트가 삭제되었습니다.");
+
+        // 목록 새로 고침
         await loadSavedPrompts();
     } catch (error) {
         console.error("프롬프트 삭제 오류:", error);
+        alert("프롬프트 삭제 중 오류가 발생했습니다.");
     }
 }
+
 
 
 // 문장 형식 선택 핸들러
@@ -1944,16 +2030,21 @@ function updateSelectedSetting() {
 // Firestore에서 설정 저장
 async function saveCurrentSettings() {
     const userId = auth.currentUser?.uid;
-    const settingsName = document.getElementById("settingsNameInput").value.trim();
+    const settingsNameInput = document.getElementById("settingsNameInput");
+    const dropdown = document.getElementById("savedSettingsDropdown");
+
+    // 설정 이름 가져오기: 입력된 이름 또는 드롭다운에서 선택된 이름
+    const settingsName = settingsNameInput.value.trim() || dropdown.value;
 
     if (!userId || !settingsName) {
-        alert("설정 이름을 입력하세요.");
+        alert("설정을 저장할 이름을 입력하거나 선택하세요.");
         return;
     }
 
     try {
         // 현재 설정 데이터 가져오기
         const settingsData = getCurrentSettings();
+        settingsData.keywords = keywords; // 키워드 추가
         settingsData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
 
         // Firestore에 저장
@@ -1961,11 +2052,19 @@ async function saveCurrentSettings() {
 
         console.log("저장된 설정:", settingsData);
 
-        loadSavedSettings(); // 저장 후 목록 갱신
+        alert(`설정이 "${settingsName}" 이름으로 저장되었습니다.`);
+
+        // 저장 후 목록 갱신
+        loadSavedSettings();
+
+        // 저장 후 입력 필드 초기화
+        settingsNameInput.value = "";
     } catch (error) {
         console.error("설정 저장 오류:", error);
+        alert("설정 저장 중 오류가 발생했습니다.");
     }
 }
+
 
 // Firestore에서 저장된 설정 목록 불러오기
 async function loadSavedSettings() {
@@ -2010,6 +2109,10 @@ async function applySelectedSetting() {
             // 설정 데이터를 적용
             const settingsData = doc.data();
             setCurrentSettings(settingsData);
+
+            // 키워드 적용
+            keywords = settingsData.keywords || [];
+            renderKeywords();
 
             // `timestamp` 업데이트
             await docRef.update({
@@ -2094,19 +2197,10 @@ async function loadLastAppliedSettings() {
 // 현재 설정 데이터 가져오기
 function getCurrentSettings() {
     
-    // 기본 프롬프트 또는 저장된 프롬프트 선택 확인
-    const defaultPromptChecked = document.querySelector('input[name="promptToggle"][value="defaultPrompt"]:checked');
-    const savedPromptChecked = document.querySelector('input[name="savedPromptToggle"]:checked');
-
-    let promptSelection = null;
-
-    if (defaultPromptChecked) {
-        promptSelection = "defaultPrompt";
-    } else if (savedPromptChecked) {
-        promptSelection = savedPromptChecked.value; // 저장된 프롬프트의 ID 저장
-    }
-
-    console.log("Current promptSelection:", promptSelection);
+    const parentSelection = document.querySelector('input[name="promptToggle"]:checked')?.value || "defaultPrompt";
+    const savedPromptSelection = document.querySelector('input[name="savedPromptToggle"]:checked')?.value || null;
+    const title = document.getElementById("promptTitleInput").value.trim();
+    const content = document.getElementById("savedPromptContent").value.trim();
 
     const useImage = document.getElementById("useImageToggle")?.checked || false;
     const imageOption = document.querySelector('input[name="imageOption"]:checked')?.value || null;
@@ -2123,8 +2217,11 @@ function getCurrentSettings() {
         topicSelection: document.querySelector('input[name="topicToggle"]:checked')?.value || null,
         manualTopic: document.getElementById("topicInput")?.value || "",
         rssInput: document.getElementById("rssInput")?.value || "",
-        promptSelection,
-
+        parentSelection,
+        savedPromptSelection,
+        title,
+        content,
+        keywords, // 현재 키워드 포함
         language: document.querySelector('.language-button.selected')?.dataset.language || null,
         tone: document.querySelector('.tone-button.selected')?.dataset.tone || null,
         emojiToggle: document.getElementById("emojiToggle")?.checked || false,
@@ -2160,19 +2257,34 @@ function getCurrentSettings() {
 // 저장된 설정을 페이지에 적용
 function setCurrentSettings(settingsData) {
     // 프롬프트 설정
-    if (settingsData.promptSelection === "defaultPrompt") {
-        const defaultPromptRadio = document.querySelector('input[name="promptToggle"][value="defaultPrompt"]');
-        if (defaultPromptRadio) {
-            defaultPromptRadio.checked = true;
-            handlePromptToggleChange(defaultPromptRadio);
-        }
-    } else if (settingsData.promptSelection) {
-        const savedPromptRadio = document.querySelector(`input[name="savedPromptToggle"][value="${settingsData.promptSelection}"]`);
+    const parentSelection = settingsData.parentSelection || "defaultPrompt";
+    const savedPromptSelection = settingsData.savedPromptSelection || null;
+
+    // 부모 선택 상태 복원
+    const parentRadio = document.querySelector(`input[name="promptToggle"][value="${parentSelection}"]`);
+    if (parentRadio) {
+        parentRadio.checked = true;
+        handlePromptToggleChange(parentRadio); // 부모 상태 적용
+    }
+
+    // 저장된 프롬프트 선택 상태 복원
+    if (savedPromptSelection) {
+        const savedPromptRadio = document.querySelector(`input[name="savedPromptToggle"][value="${savedPromptSelection}"]`);
         if (savedPromptRadio) {
             savedPromptRadio.checked = true;
             handlePromptToggleChange(savedPromptRadio);
         }
     }
+
+    // 에디터 값 복원
+    if (settingsData.title && settingsData.content) {
+        document.getElementById("promptTitleInput").value = settingsData.title;
+        document.getElementById("savedPromptContent").value = settingsData.content;
+    }
+
+    // 키워드 복원
+    keywords = settingsData.keywords || [];
+    renderKeywords();
 
     // 블로그 및 주제 관련 설정
     document.querySelector(`input[name="blogToggle"][value="${settingsData.blogSelection}"]`)?.click();
@@ -2254,278 +2366,57 @@ function setCurrentSettings(settingsData) {
 //블로그 생성 코드
 
 
-const aiConfig = {
-    gpt: {
-        apiUrl: "https://api.openai.com/v1/chat/completions",
-        models: {
-            "gpt-3.5-turbo": "gpt-3.5-turbo",
-            "gpt-4": "gpt-4",
-            "gpt-4-turbo": "gpt-4-turbo"
-        }
-    },
-    gemini: {
-        apiUrl: "https://generativelanguage.googleapis.com/v1beta", // 기본 엔드포인트
-        models: {
-            "gemini-1": "models/gemini-1",
-            "gemini-2": "models/gemini-2",
-            "gemini-advanced": "models/gemini-advanced",
-            "gemini-1.5-flash": "models/gemini-1.5-flash"
-        },
-        generateEndpoint: "https://generativelanguage.googleapis.com/v1beta/generateText" // 텍스트 생성 엔드포인트
-    }
-};
-
-
-
-// 환경 변수에서 프록시 서버 URL 가져오기
-const PROXY_SERVER_URL = 'https://proxy.dokdolove.com'; // 환경 변수로 설정 가능
-
-
 async function generatePost() {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-        alert("로그인 후 이용할 수 있습니다.");
-        return;
-    }
-
-    // 현재 설정 가져오기
     const settings = getCurrentSettings();
+
     if (!settings.blogSelection) {
         alert("블로그를 선택하세요.");
         return;
     }
 
-    try {
-        // 1. 블로그 인증 정보 가져오기
-        const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
-        if (!blogCredentials) {
-            alert("블로그 인증 정보를 불러올 수 없습니다.");
-            return;
-        }
-        console.log("블로그 인증 정보:", blogCredentials);
-
-        // 2. 주제 생성
-        const postTopic = settings.topicSelection === "manualTopic" 
-            ? settings.manualTopic 
-            : await resolvePostTopic(settings);
-        if (!postTopic) {
-            alert("주제를 설정하세요.");
-            return;
-        }
-        console.log("포스팅 주제:", postTopic);
-
-        // 3. 프롬프트 생성
-        const prompt = await resolvePrompt(userId, settings, postTopic);
-        if (!prompt) {
-            alert("프롬프트를 설정하세요.");
-            return;
-        }
-        console.log("생성된 프롬프트:", prompt);
-
-        // 4. AI 기반 콘텐츠 생성
-        const content = await generatePostContent(prompt, settings.language, settings.tone, settings.emojiToggle, settings.aiSelection);
-        console.log("생성된 포스팅 콘텐츠:", content);
-
-        // 5. 이미지 및 광고 처리
-        const imagesHTML = images.length > 0 ? generateImageHTML(images) : "";
-        const finalContent = `${content}\n\n${imagesHTML}`;
-        const ads = await generateAds(settings);
-
-        // 6. 최종 포스팅 데이터 생성
-        const postData = {
-            title: postTopic,
-            content: finalContent,
-            images,
-            ads,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        };
-
-        // 7. 포스팅 옵션 처리
-        await handlePostingOptions(settings, postData, blogCredentials);
-
-        // 8. 작업 히스토리 업데이트
-        await updatePostHistory(userId, postData);
-
-        alert("포스팅 작업이 성공적으로 완료되었습니다.");
-    } catch (error) {
-        console.error("포스팅 생성 중 오류:", error);
-        alert("포스팅 생성 중 오류가 발생했습니다.");
+    if (!settings.topicSelection) {
+        alert("주제 선택이 필요합니다.");
+        return;
     }
-}
 
-// 포스팅 옵션 처리
-async function handlePostingOptions(settings, postData, blogCredentials) {
-    if (settings.postingOption.auto) {
-        await handleAutoPosting(postData, settings);
-    } else if (settings.postingOption.schedule) {
-        await schedulePost(postData, settings.schedule);
-    } else {
-        const isPosted = await postToBlog(settings.blogSelection, blogCredentials, postData);
-        if (!isPosted) {
-            throw new Error("포스팅에 실패했습니다.");
-        }
-    }
-}
-
-// AI 콘텐츠 생성
-async function generatePostContent(prompt, language, tone, useEmoji, aiVersion) {
     try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) {
-            throw new Error("사용자 ID를 찾을 수 없습니다. 로그인 상태를 확인하세요.");
-        }
-
-        // Firestore에서 사용자 데이터 로드
-        const userDoc = await db.collection("settings").doc(userId).get();
-        if (!userDoc.exists) {
-            throw new Error("사용자 데이터를 Firestore에서 찾을 수 없습니다.");
-        }
-
-        const userData = userDoc.data();
-        const apiKey = aiVersion.startsWith("gpt") ? userData.openAIKey : userData.geminiKey;
-        const selectedConfig = aiVersion.startsWith("gpt") ? aiConfig.gpt : aiConfig.gemini;
-        const model = selectedConfig.models[aiVersion];
-
-        if (!apiKey || !model) {
-            throw new Error("API 키 또는 모델 정보가 누락되었습니다.");
-        }
-
-        // 요청 데이터 생성
-        const requestData = aiVersion.startsWith("gpt")
-            ? {
-                model,
-                messages: [
-                    { role: "system", content: "당신은 훌륭한 블로그 글 작성가입니다." },
-                    { role: "user", content: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}` },
-                ],
-                max_tokens: 1000,
-                temperature: 0.7,
-            }
-            : {
-                model: `models/${model}`, // Gemini 모델 이름 형식
-                prompt: `언어: ${language}\n문체: ${tone}\n${useEmoji ? "이모티콘 포함" : ""}\n내용:\n${prompt}`,
-                temperature: 0.7,
-                top_p: 0.9,
-                max_output_tokens: 1000,
-            };
-
-        console.log("전송 데이터:", {
-            userId,
-            apiKey,
-            requestData,
+        const response = await fetch('/api/generate-post', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: auth.currentUser?.uid,
+                settings,
+            }),
         });
-
-        // 프록시 서버에 요청 전송
-        const response = await fetch(
-            aiVersion.startsWith("gpt")
-                ? selectedConfig.apiUrl
-                : `${PROXY_SERVER_URL}/proxy/gemini`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: aiVersion.startsWith("gpt") ? `Bearer ${apiKey}` : undefined,
-                },
-                body: JSON.stringify({
-                    userId,
-                    apiKey,
-                    requestData,
-                }),
-            }
-        );
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error("AI API 오류:", errorData);
-            throw new Error(`AI 요청 실패: ${errorData.message || response.statusText}`);
+            const errorData = await response.json();
+            throw new Error(errorData.error || "포스팅 생성 실패");
         }
-
-        const data = await response.json();
-        return aiVersion.startsWith("gpt")
-            ? data.choices?.[0]?.message?.content.trim()
-            : data.candidates?.[0]?.output.trim() || "AI 콘텐츠 생성 실패";
-    } catch (error) {
-        console.error("AI 콘텐츠 생성 중 오류:", error);
-        throw error;
-    }
-}
-
-
-
-
-
-
-// 블로그 포스팅
-async function postToBlog(blogSelection, blogCredentials, postData) {
-    console.log("블로그 선택:", blogSelection);
-    console.log("블로그 인증 정보:", blogCredentials);
-    console.log("포스팅 데이터:", postData);
-
-    // 인증 정보 확인
-    if (!blogCredentials.username || !blogCredentials.appPassword || !blogCredentials.siteUrl) {
-        console.error("워드프레스 인증 정보가 누락되었습니다.", blogCredentials);
-        return false;
-    }
-
-    try {
-        const requestBody = {
-            userId: auth.currentUser?.uid,
-            blogUrl: blogSelection,
-            username: blogCredentials.username,
-            appPassword: blogCredentials.appPassword,
-            postData,
-        };
-
-        console.log("전송 데이터:", requestBody);
-
-        const response = await fetch(`${PROXY_SERVER_URL}/proxy/wp-post`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestBody),
-        });
 
         const result = await response.json();
-
-        if (response.ok && result.success) {
-            console.log("워드프레스 포스팅 성공:", result.data);
-            return true;
-        } else {
-            console.error(
-                "워드프레스 포스팅 실패. 상태 코드:",
-                response.status,
-                "응답 데이터:",
-                result
-            );
-            return false;
-        }
+        console.log("생성된 작업 ID:", result.jobId);
+        alert("포스팅 생성이 시작되었습니다. 히스토리를 확인하세요.");
     } catch (error) {
-        console.error("포스팅 중 오류 발생:", error);
-        return false;
+        console.error("생성 작업 오류:", error);
+        alert("작업 생성 중 오류가 발생했습니다. 다시 시도하세요.");
     }
 }
 
 
 
-async function updatePostHistory(userId, postData) {
-    try {
-        // Firestore에 작업 내역 저장
-        const historyRef = db.collection("postHistory").doc(userId).collection("posts");
-        await historyRef.add({
-            title: postData.title,
-            content: postData.content,
-            images: postData.images,
-            ads: postData.ads,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        });
 
-        console.log("작업 히스토리에 저장되었습니다.");
-    } catch (error) {
-        console.error("작업 히스토리 업데이트 중 오류:", error);
-        throw new Error("작업 히스토리 업데이트에 실패했습니다.");
-    }
-}
+
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
+//나의 문서 코드
+
 
 async function loadPostHistory(userId) {
     try {
@@ -2538,217 +2429,40 @@ async function loadPostHistory(userId) {
         snapshot.forEach((doc) => {
             const data = doc.data();
             const postElement = document.createElement("div");
+            postElement.classList.add("post-item");
+
             postElement.innerHTML = `
                 <h3>${data.title}</h3>
                 <p>${data.content.substring(0, 100)}...</p>
                 <small>${new Date(data.timestamp.seconds * 1000).toLocaleString()}</small>
+                <button onclick="editPost('${doc.id}')">수정</button>
+                <button onclick="deletePost('${doc.id}')">삭제</button>
+                <span class="status">${data.status || "포스팅 완료"}</span>
             `;
             historyContainer.appendChild(postElement);
         });
-
-        console.log("포스팅 내역 로드 완료");
     } catch (error) {
         console.error("포스팅 내역 로드 중 오류:", error);
     }
 }
 
-
-// 블로그 인증 정보 가져오기
-async function fetchBlogCredentials(userId, blogSelection) {
-    const wordpressSnapshot = await db
-        .collection("settings")
-        .doc(userId)
-        .collection("wordpress")
-        .where("siteUrl", "==", blogSelection)
-        .get();
-
-    const googleBlogSnapshot = await db
-        .collection("settings")
-        .doc(userId)
-        .collection("googleBlog")
-        .where("blogUrl", "==", blogSelection)
-        .get();
-
-    if (!wordpressSnapshot.empty) {
-        return { ...wordpressSnapshot.docs[0].data(), type: "wordpress" };
-    }
-    if (!googleBlogSnapshot.empty) {
-        return { ...googleBlogSnapshot.docs[0].data(), type: "googleBlog" };
-    }
-    return null;
-}
-
-// 주제 생성
-async function resolvePostTopic(settings) {
-    if (settings.topicSelection === "realTimeKeyword") {
-        return fetchRealTimeKeyword();
-    } else if (settings.topicSelection === "manualTopic") {
-        return settings.manualTopic;
-    } else if (settings.topicSelection === "rssCrawl") {
-        return crawlRssContent(settings.rssInput);
-    }
-    return null;
-}
-
-// 프롬프트 생성
-async function resolvePrompt(userId, settings, topic) {
-    if (settings.promptSelection === "defaultPrompt") {
-        return `다음 주제에 대한 블로그 글을 작성하세요: ${topic}`;
-    } else {
-        const promptDoc = await db.collection("settings").doc(userId).collection("prompts").doc(settings.promptSelection).get();
-        if (promptDoc.exists) {
-            return promptDoc.data().content.replace("{{topic}}", topic);
-        }
-        return null;
-    }
-}
-
-
-// 이미지 처리
-async function processImages(settings, postTopic) {
-    let images = [];
-
-    if (settings.useImage) {
-        if (settings.imageOption === "search") {
-            if (settings.imageSearchEngine === "google") {
-                images = await searchGoogleImages(postTopic);
-            } else if (settings.imageSearchEngine === "pixabay") {
-                images = await searchPixabayImages(postTopic);
-            }
-        } else if (settings.imageOption === "upload") {
-            images = settings.uploadedImages || [];
-        }
-
-        if (settings.showImageSource) {
-            images = images.map((img) => ({
-                url: img.url || img,
-                source: `출처: ${img.source || "알 수 없음"}`,
-            }));
-        }
-
-        if (settings.insertTextToggle) {
-            images = await insertTextIntoImages(images, settings.insertedText);
-        }
-    }
-
-    return images;
-}
-
-// 이미지 HTML 생성
-function generateImageHTML(images) {
-    return images
-        .map((img) => `<img src="${img.url}" alt="이미지" style="max-width:100%; height:auto;">${img.source ? `<p>${img.source}</p>` : ""}`)
-        .join("\n");
-}
-
-
-// 광고 생성
-async function generateAds(settings) {
-    const ads = [];
-    if (settings.useCoupangAds && settings.coupangLink) {
-        ads.push(await generateCoupangAd(settings.coupangLink));
-    }
-    if (settings.useAdSenseAds) {
-        ads.push("에드센스 광고 배너 삽입 코드");
-    }
-    return ads;
-}
-
-// 포스팅 처리
-async function handlePosting(settings, postData, blogCredentials) {
-    if (settings.postingOption.auto) {
-        return handleAutoPosting(postData, settings);
-    } else if (settings.postingOption.schedule) {
-        return schedulePost(postData, settings.schedule);
-    } else {
-        return postToBlog(settings.blogSelection, blogCredentials, postData);
-    }
-}
-
-// 이미지 검색 및 처리
-async function searchGoogleImages(query, apiKey, cx) {
-    try {
-        const response = await fetch(
-            `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&cx=${cx}&searchType=image&key=${apiKey}`
-        );
-        const data = await response.json();
-        return data.items.map((item) => ({
-            url: item.link,
-            source: item.displayLink,
-        }));
-    } catch (error) {
-        console.error("Google 이미지 검색 오류:", error);
-        return [];
-    }
-}
-
-async function searchPixabayImages(query, apiKey) {
-    try {
-        const response = await fetch(
-            `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo`
-        );
-        const data = await response.json();
-        return data.hits.map((hit) => ({
-            url: hit.webformatURL,
-            source: hit.pageURL,
-        }));
-    } catch (error) {
-        console.error("Pixabay 이미지 검색 오류:", error);
-        return [];
-    }
-}
-
-async function insertTextIntoImages(images, text, cloudinaryConfig) {
-    try {
-        return images.map((image) => {
-            const url = new URL(image.url);
-            const cloudinaryUrl = `https://res.cloudinary.com/${cloudinaryConfig.cloudName}/image/upload/l_text:Arial_20:${encodeURIComponent(
-                text
-            )}/${url.pathname}`;
-            return { ...image, url: cloudinaryUrl };
+// 포스팅 수정
+async function editPost(postId) {
+    const newContent = prompt("수정할 내용을 입력하세요:");
+    if (newContent !== null) {
+        await db.collection("postHistory").doc(userId).collection("posts").doc(postId).update({
+            content: newContent,
         });
-    } catch (error) {
-        console.error("이미지에 텍스트 삽입 오류:", error);
-        return images;
-    }
-
-}
-
-// 광고 삽입
-async function generateCoupangAd(coupangLink) {
-    try {
-        return `<a href="${coupangLink}" target="_blank">쿠팡 광고 링크</a>`;
-    } catch (error) {
-        console.error("쿠팡 광고 생성 오류:", error);
-        return null;
+        alert("포스팅 내용이 수정되었습니다.");
+        loadPostHistory(userId);
     }
 }
 
-
-async function fetchRealTimeKeyword() {
-    try {
-        const response = await fetch("https://example.com/api/realtime-keywords");
-        if (!response.ok) throw new Error("실시간 키워드 API 호출 실패");
-
-        const data = await response.json();
-        return data.keywords[0]; // 가장 인기 있는 키워드 반환
-    } catch (error) {
-        console.error("실시간 키워드 가져오기 오류:", error);
-        return "";
-    }
-}
-
-async function crawlRssContent(rssUrl) {
-    try {
-        const response = await fetch(`https://example.com/api/rss-crawl?url=${encodeURIComponent(rssUrl)}`);
-        if (!response.ok) throw new Error("RSS 크롤링 API 호출 실패");
-
-        const data = await response.json();
-        return data.extractedContent; // 크롤링된 내용을 반환
-    } catch (error) {
-        console.error("RSS 크롤링 오류:", error);
-        return "";
-    }
+// 포스팅 삭제
+async function deletePost(postId) {
+    await db.collection("postHistory").doc(userId).collection("posts").doc(postId).delete();
+    alert("포스팅이 삭제되었습니다.");
+    loadPostHistory(userId);
 }
 
 
