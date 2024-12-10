@@ -320,15 +320,15 @@ function delay(ms) {
 // 포스팅 생성 API
 app.post('/api/generate-post', async (req, res) => {
     try {
-        console.log('요청 데이터:', req.body); // 요청 데이터 확인
+        console.log('요청 데이터:', req.body);
         const { userId, settings, keywords } = req.body;
 
-        if (!userId || !settings || !keywords) {
+        if (!userId || !settings || !keywords || keywords.length === 0) {
             console.error('요청 데이터 누락:', { userId, settings, keywords });
             return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
         }
 
-        // Firestore 작업
+        // 작업 ID 생성 및 저장
         const jobId = `${userId}-${Date.now()}`;
         console.log('작업 ID:', jobId);
 
@@ -339,62 +339,112 @@ app.post('/api/generate-post', async (req, res) => {
             status: '진행 중',
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-
         console.log('Firestore 작업 생성 완료');
+
+        // AI 모델 강제 설정
+        settings.aiSelection = 'gpt-4-turbo';
+        console.log('AI 모델 설정:', settings.aiSelection);
+
+        // 포스팅 옵션에 따라 처리
+        if (settings.postingOption.auto) {
+            console.log('연속 포스팅 작업 시작');
+            await handleAutoPosting(jobId, userId, settings, keywords);
+        } else if (settings.postingOption.schedule) {
+            console.log('예약 포스팅 작업 시작');
+            await handleScheduledPosting(jobId, userId, settings);
+        } else {
+            console.log('단일 포스팅 작업 시작');
+            await handleSinglePosting(jobId, userId, settings, keywords[0]);
+        }
+
+        // 작업 완료 업데이트
+        await db.collection('posting-jobs').doc(jobId).update({ status: '완료' });
+        console.log('작업 완료');
         res.json({ success: true, jobId });
     } catch (error) {
-        console.error('서버 에러 발생:', error); // 오류 로그
+        console.error('작업 처리 중 오류:', error.message);
         res.status(500).json({ success: false, error: '작업 처리 실패' });
     }
 });
 
 
+
 // 주요 작업 처리 함수
 // 단일 포스팅 처리
 async function handleSinglePosting(jobId, userId, settings, keyword) {
-    const topic = await resolvePostTopic(settings, keyword);
-    const postData = await generatePostData(userId, settings, topic);
-    const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
+    try {
+        console.log(`[단일 포스팅] 키워드: ${keyword}`);
+        const topic = await resolvePostTopic(settings, keyword);
+        const postData = await generatePostData(userId, settings, topic);
+        const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
 
-    await postToBlog(settings.blogSelection, blogCredentials, postData);
-    await updatePostHistory(userId, postData);
+        console.log('[단일 포스팅] 블로그 인증 정보:', blogCredentials);
+        const result = await postToBlog(settings.blogSelection, blogCredentials, postData);
+        console.log('[단일 포스팅] 포스팅 결과:', result);
+
+        await updatePostHistory(userId, postData);
+    } catch (error) {
+        console.error('[단일 포스팅 오류]:', error.message);
+        throw error;
+    }
 }
 
 // 연속 포스팅 처리
 async function handleAutoPosting(jobId, userId, settings, keywords) {
     for (let i = 0; i < keywords.length; i++) {
-        const keyword = keywords[i];
-        const topic = await resolvePostTopic(settings, keyword);
-        const postData = await generatePostData(userId, settings, topic);
-        const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
+        try {
+            const keyword = keywords[i];
+            console.log(`[연속 포스팅 ${i + 1}/${keywords.length}] 키워드: ${keyword}`);
 
-        await postToBlog(settings.blogSelection, blogCredentials, postData);
-        await updatePostHistory(userId, postData);
+            const topic = await resolvePostTopic(settings, keyword);
+            const postData = await generatePostData(userId, settings, topic);
+            const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
 
-        if (i < keywords.length - 1 && settings.timeButtonType === 'custom') {
-            const intervalMs = parseInt(settings.customInterval, 10) * 1000;
-            await delay(intervalMs);
+            console.log('[연속 포스팅] 블로그 인증 정보:', blogCredentials);
+            const result = await postToBlog(settings.blogSelection, blogCredentials, postData);
+            console.log('[연속 포스팅] 포스팅 결과:', result);
+
+            await updatePostHistory(userId, postData);
+
+            if (i < keywords.length - 1 && settings.timeButtonType === 'custom') {
+                const intervalMs = parseInt(settings.customInterval, 10) * 1000;
+                console.log(`다음 포스팅까지 ${intervalMs / 1000}초 대기 중...`);
+                await delay(intervalMs);
+            }
+        } catch (error) {
+            console.error(`[연속 포스팅 오류 ${i + 1}/${keywords.length}]:`, error.message);
+            continue; // 다음 포스팅으로 진행
         }
     }
 }
 
 // 예약 포스팅 처리
 async function handleScheduledPosting(jobId, userId, settings) {
-    const { year, month, day, hour, minute } = settings.schedule;
-    const scheduleTime = new Date(year, month - 1, day, hour, minute);
+    try {
+        const { year, month, day, hour, minute } = settings.schedule;
+        const scheduleTime = new Date(year, month - 1, day, hour, minute);
 
-    const delayMs = scheduleTime.getTime() - Date.now();
-    if (delayMs > 0) {
-        await delay(delayMs);
+        const delayMs = scheduleTime.getTime() - Date.now();
+        if (delayMs > 0) {
+            console.log(`예약 포스팅 대기 중: ${delayMs / 1000}초`);
+            await delay(delayMs);
+        }
+
+        const topic = await resolvePostTopic(settings, settings.keywords[0]);
+        const postData = await generatePostData(userId, settings, topic);
+        const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
+
+        console.log('[예약 포스팅] 블로그 인증 정보:', blogCredentials);
+        const result = await postToBlog(settings.blogSelection, blogCredentials, postData);
+        console.log('[예약 포스팅] 포스팅 결과:', result);
+
+        await updatePostHistory(userId, postData);
+    } catch (error) {
+        console.error('[예약 포스팅 오류]:', error.message);
+        throw error;
     }
-
-    const topic = await resolvePostTopic(settings, settings.keywords[0]);
-    const postData = await generatePostData(userId, settings, topic);
-    const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
-
-    await postToBlog(settings.blogSelection, blogCredentials, postData);
-    await updatePostHistory(userId, postData);
 }
+
 
 // 주요 Helper 함수
 // 주제 생성
@@ -537,20 +587,36 @@ function generateImageHTML(images, showImageSource) {
 
 // 최종 포스팅 데이터 생성
 async function generatePostData(userId, settings, topic) {
-    const prompt = resolvePrompt(topic, settings);
-    const content = await generatePostContent(prompt, settings);
-    const images = await processImages(settings, topic);
-    const ads = generateAds(settings);
+    try {
+        console.log('포스팅 데이터 생성 시작');
 
-    const finalContent = `${content}\n\n${generateImageHTML(images, settings.showImageSource)}\n\n${ads}`;
+        // 프롬프트 생성
+        const prompt = resolvePrompt(topic, settings);
+        console.log('생성된 프롬프트:', prompt);
 
-    return {
-        title: topic,
-        content: finalContent,
-        images,
-        ads,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    };
+        // AI 콘텐츠 생성
+        const content = await generatePostContent(prompt, settings.language, settings.tone, settings.emojiToggle, settings.aiSelection);
+        console.log('생성된 콘텐츠:', content);
+
+        // 이미지 처리
+        const images = await processImages(settings, topic);
+        console.log('처리된 이미지:', images);
+
+        // 광고 생성
+        const ads = generateAds(settings);
+        console.log('생성된 광고:', ads);
+
+        // 최종 데이터 반환
+        return {
+            title: topic,
+            content: `${content}\n\n${images.map((img) => `<img src="${img.url}" alt="이미지" /><p>${img.source}</p>`).join('\n')}\n\n${ads}`,
+            images,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        };
+    } catch (error) {
+        console.error('포스팅 데이터 생성 중 오류:', error);
+        throw error;
+    }
 }
 
 // 블로그 자격 증명 가져오기
@@ -569,23 +635,7 @@ async function fetchBlogCredentials(userId, blogSelection) {
     throw new Error('블로그 자격 증명을 가져올 수 없습니다.');
 }
 
-// 예약 작업 API
-async function handleScheduledPosting(jobId, userId, settings) {
-    const { year, month, day, hour, minute } = settings.schedule;
-    const scheduleTime = new Date(year, month - 1, day, hour, minute);
-    const delayMs = scheduleTime.getTime() - Date.now();
 
-    if (delayMs > 0) {
-        await delay(delayMs);
-    }
-
-    const topic = await resolvePostTopic(settings, settings.keywords[0]);
-    const postData = await generatePostData(userId, settings, topic);
-    const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
-
-    await postToBlog(settings.blogSelection, blogCredentials, postData);
-    await updatePostHistory(userId, postData);
-}
 
 
 
