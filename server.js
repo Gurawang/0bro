@@ -413,8 +413,7 @@ async function handleSinglePosting(jobId, userId, settings, keyword) {
         console.log('[단일 포스팅] 포스팅 데이터:', postData);
 
         // 통합 포스팅 함수 호출
-        const settings = await loadSettings(userId, blogSelection, blogUrl);
-        await handlePosting(userId, blogSelection, blogUrl, postData, settings);
+        await handlePosting(userId, settings.blogSelection, settings.blogUrl, postData);
 
         await updatePostHistory(userId, postData);
     } catch (error) {
@@ -438,8 +437,7 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
             console.log(`[연속 포스팅] 생성된 포스팅 데이터:`, postData);
 
             // 통합 포스팅 함수 호출
-            const settings = await loadSettings(userId, blogSelection, blogUrl);
-            await handlePosting(userId, blogSelection, blogUrl, postData, settings);
+            await handlePosting(userId, settings.blogSelection, settings.blogUrl, postData);
 
             console.log(`[연속 포스팅 ${i + 1}/${keywords.length}] 포스팅 완료`);
 
@@ -476,8 +474,7 @@ async function handleScheduledPosting(jobId, userId, settings) {
         console.log('[예약 포스팅] 생성된 포스팅 데이터:', postData);
 
         // 통합 포스팅 함수 호출
-        const settings = await loadSettings(userId, blogSelection, blogUrl);
-        await handlePosting(userId, blogSelection, blogUrl, postData, settings);
+        await handlePosting(userId, settings.blogSelection, settings.blogUrl, postData);
 
         console.log('[예약 포스팅] 포스팅 완료');
 
@@ -581,7 +578,7 @@ async function postToGoogleBlog(blogId, clientId, clientSecret, refreshToken, po
 }
 
 // 포스팅 실행 함수
-async function handlePosting(userId, blogSelection, blogUrl, postData, settings) {
+async function handlePosting(userId, blogSelection, blogUrl, postData) {
     try {
         console.log("포스팅 실행 함수 시작");
         console.log("User ID:", userId);
@@ -589,8 +586,25 @@ async function handlePosting(userId, blogSelection, blogUrl, postData, settings)
         console.log("Blog URL:", blogUrl);
         console.log("Post Data:", postData);
 
+        const userSettingsRef = db.collection('settings').doc(userId);
+        let settings = null; // 설정 객체 초기화
 
         if (blogSelection === 'wordpress') {
+            console.log("WordPress 설정 불러오기 시작");
+            const wordpressDoc = await userSettingsRef.collection('wordpress').doc(blogUrl).get();
+
+            if (!wordpressDoc.exists) {
+                console.error("WordPress 설정을 찾을 수 없습니다. Blog URL:", blogUrl);
+                throw new Error('WordPress 설정을 찾을 수 없습니다.');
+            }
+
+            settings = wordpressDoc.data();
+            console.log("WordPress 설정 로드 성공:", settings);
+
+            if (!settings.blogUrl || !settings.username || !settings.appPassword) {
+                console.error("WordPress 설정 데이터 누락. 로드된 설정:", settings);
+                throw new Error('WordPress 설정 데이터가 누락되었습니다.');
+            }
 
             console.log("WordPress 포스팅 데이터 확인:");
             console.log("Blog URL:", settings.blogUrl);
@@ -600,7 +614,21 @@ async function handlePosting(userId, blogSelection, blogUrl, postData, settings)
             await postToWordPress(settings.blogUrl, settings.username, settings.appPassword, postData);
 
         } else if (blogSelection === 'googleBlog') {
- 
+            console.log("Google Blog 설정 불러오기 시작");
+            const googleBlogDoc = await userSettingsRef.collection('googleBlog').doc(blogUrl).get();
+
+            if (!googleBlogDoc.exists) {
+                console.error("Google Blog 설정을 찾을 수 없습니다. Blog URL:", blogUrl);
+                throw new Error('Google Blog 설정을 찾을 수 없습니다.');
+            }
+
+            settings = googleBlogDoc.data();
+            console.log("Google Blog 설정 로드 성공:", settings);
+
+            if (!settings.blogId || !settings.clientId || !settings.clientSecret || !settings.refreshToken) {
+                console.error("Google Blog 설정 데이터 누락. 로드된 설정:", settings);
+                throw new Error('Google Blog 설정 데이터가 누락되었습니다.');
+            }
 
             console.log("Google Blog 포스팅 데이터 확인:");
             console.log("Blog ID:", settings.blogId);
@@ -621,6 +649,7 @@ async function handlePosting(userId, blogSelection, blogUrl, postData, settings)
         throw error;
     }
 }
+
 
 async function loadSettings(userId, blogSelection, blogUrl) {
     const userSettingsRef = db.collection('settings').doc(userId);
