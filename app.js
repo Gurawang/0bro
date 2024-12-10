@@ -2228,9 +2228,6 @@ function getCurrentSettings() {
         content = document.getElementById("savedPromptContent").value.trim(); // 사용자 프롬프트 내용
     }
 
-    console.log("UI에서 가져온 프롬프트 제목:", title);
-    console.log("UI에서 가져온 프롬프트 내용:", content);
-
     const useImage = document.getElementById("useImageToggle")?.checked || false;
     const imageOption = document.querySelector('input[name="imageOption"]:checked')?.value || null;
     const uploadedImages = Array.from(document.querySelectorAll("#uploadedImages img")).map(img => img.src);
