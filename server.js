@@ -580,31 +580,65 @@ async function postToGoogleBlog(blogId, clientId, clientSecret, refreshToken, po
 // 포스팅 실행 함수
 async function handlePosting(userId, blogSelection, blogUrl, postData) {
     try {
+        console.log("포스팅 실행 함수 시작");
+        console.log("User ID:", userId);
+        console.log("Blog Selection:", blogSelection);
+        console.log("Blog URL:", blogUrl);
+        console.log("Post Data:", postData);
+
         const userSettingsRef = db.collection('settings').doc(userId);
 
         if (blogSelection === 'wordpress') {
+            console.log("WordPress 설정 불러오기 시작");
             const wordpressDoc = await userSettingsRef.collection('wordpress').doc(blogUrl).get();
 
             if (!wordpressDoc.exists) {
+                console.error("WordPress 설정을 찾을 수 없습니다. Blog URL:", blogUrl);
                 throw new Error('WordPress 설정을 찾을 수 없습니다.');
             }
 
             const settings = wordpressDoc.data();
+            console.log("WordPress 설정 로드 성공:", settings);
 
-            console.log('WordPress 설정 로드 성공:', settings);
+            if (!settings.blogUrl || !settings.username || !settings.appPassword) {
+                console.error("WordPress 설정 데이터 누락. 로드된 설정:", settings);
+                throw new Error('WordPress 설정 데이터가 누락되었습니다.');
+            }
+
+            console.log("WordPress 포스팅 데이터 확인:");
+            console.log("Blog URL:", settings.blogUrl);
+            console.log("Username:", settings.username);
+            console.log("App Password:", settings.appPassword);
+
             await postToWordPress(settings.blogUrl, settings.username, settings.appPassword, postData);
+
         } else if (blogSelection === 'googleBlog') {
+            console.log("Google Blog 설정 불러오기 시작");
             const googleBlogDoc = await userSettingsRef.collection('googleBlog').doc(blogUrl).get();
 
             if (!googleBlogDoc.exists) {
+                console.error("Google Blog 설정을 찾을 수 없습니다. Blog URL:", blogUrl);
                 throw new Error('Google Blog 설정을 찾을 수 없습니다.');
             }
 
             const settings = googleBlogDoc.data();
+            console.log("Google Blog 설정 로드 성공:", settings);
 
-            console.log('Google Blog 설정 로드 성공:', settings);
+            if (!settings.blogId || !settings.clientId || !settings.clientSecret || !settings.refreshToken) {
+                console.error("Google Blog 설정 데이터 누락. 로드된 설정:", settings);
+                throw new Error('Google Blog 설정 데이터가 누락되었습니다.');
+            }
+
+            console.log("Google Blog 포스팅 데이터 확인:");
+            console.log("Blog ID:", settings.blogId);
+            console.log("Client ID:", settings.clientId);
+            console.log("Client Secret:", settings.clientSecret);
+            console.log("Refresh Token:", settings.refreshToken);
+
             await postToGoogleBlog(settings.blogId, settings.clientId, settings.clientSecret, settings.refreshToken, postData);
+
         } else {
+            console.error("지원하지 않는 블로그 플랫폼:", blogSelection);
             throw new Error('지원하지 않는 블로그 플랫폼입니다.');
         }
 
@@ -614,6 +648,7 @@ async function handlePosting(userId, blogSelection, blogUrl, postData) {
         throw error;
     }
 }
+
 
 
 
