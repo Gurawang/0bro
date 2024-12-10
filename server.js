@@ -403,12 +403,12 @@ async function handleScheduledPosting(jobId, userId, settings) {
 async function resolvePostTopic(settings, keyword) {
     switch (settings.topicSelection) {
         case 'realTimeKeyword':
-            const response = await axios.get('https://example.com/api/realtime-keywords');
+            const response = await axios.get('https://www.dokdolove.com/api/realtime-keywords');
             return response.data.keywords?.[0] || '기본 주제';
         case 'manualTopic':
             return keyword || '기본 주제';
         case 'rssCrawl':
-            const rssResponse = await axios.get(`https://example.com/api/rss-crawl?url=${settings.rssInput}`);
+            const rssResponse = await axios.get(`https://www.dokdolove.com/api/rss-crawl?url=${settings.rssInput}`);
             return rssResponse.data.extractedContent || '기본 주제';
         default:
             throw new Error('유효하지 않은 주제 선택 옵션입니다.');
