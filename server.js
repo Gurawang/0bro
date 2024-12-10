@@ -334,6 +334,14 @@ app.post('/api/generate-post', async (req, res) => {
             return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
         }
 
+        const blogSelection = settings.blogSelection;
+
+        if (!blogSelection) {
+            return res.status(400).json({ error: '블로그 선택 정보가 없습니다.' });
+        }
+
+        console.log('전달된 블로그 선택:', blogSelection);
+
         // customPrompt 값 확인
         if (!settings.customPrompt || settings.customPrompt.trim() === "") {
             console.error('프롬프트 내용이 없습니다.');

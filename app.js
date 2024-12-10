@@ -1495,7 +1495,7 @@ function deleteGoogleBlog(id) {
 
 
 
-
+let blogSelection = null;
 
 async function loadRegisteredBlogs() {
     console.log("loadRegisteredBlogs 함수가 호출되었습니다.");
@@ -1523,7 +1523,7 @@ async function loadRegisteredBlogs() {
                 listItem.innerHTML = `
                     <span>${data.siteUrl} (워드프레스)</span>
                     <label class="toggle-label">
-                        <input type="radio" name="blogToggle" value="${data.siteUrl}" onchange="handleToggleChange(this)">
+                        <input type="radio" name="blogToggle" value="${data.siteUrl}" onchange="handleToggleChange(this, 'wordpress')">
                         <span class="toggle-switch"></span>
                     </label>
                 `;
@@ -1537,7 +1537,7 @@ async function loadRegisteredBlogs() {
                 listItem.innerHTML = `
                     <span>${data.blogUrl} (구글 블로그)</span>
                     <label class="toggle-label">
-                        <input type="radio" name="blogToggle" value="${data.blogUrl}" onchange="handleToggleChange(this)">
+                        <input type="radio" name="blogToggle" value="${data.blogUrl}" onchange="handleToggleChange(this, 'googleBlog')">
                         <span class="toggle-switch"></span>
                     </label>
                 `;
@@ -1549,14 +1549,43 @@ async function loadRegisteredBlogs() {
     }
 }
 
+
+let blogUrl = null; // 선택된 블로그 URL
+
 function handleToggleChange(selectedToggle) {
+    // 모든 토글을 확인하고 선택되지 않은 토글을 해제
     const toggles = document.querySelectorAll("input[name='blogToggle']");
     toggles.forEach((toggle) => {
         if (toggle !== selectedToggle) {
             toggle.checked = false;
         }
     });
+
+    // 선택된 토글의 값과 플랫폼 확인
+    const selectedValue = selectedToggle.value;
+    if (selectedValue.includes("wordpress")) {
+        blogSelection = "wordpress";
+    } else if (selectedValue.includes("google")) {
+        blogSelection = "googleBlog";
+    } else {
+        blogSelection = null;
+    }
+
+    blogUrl = selectedValue;
+
+    // 선택된 값 로깅
+    console.log("선택된 블로그 플랫폼:", blogSelection);
+    console.log("선택된 블로그 URL:", blogUrl);
+
+    // 선택 상태를 저장하려면 Firebase나 localStorage 업데이트 추가
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+        db.collection("settings").doc(userId).update({ blogSelection, blogUrl })
+            .then(() => console.log("블로그 선택 정보가 저장되었습니다."))
+            .catch((error) => console.error("블로그 선택 정보 저장 실패:", error));
+    }
 }
+
 
 
 // 키워드 저장용 배열
