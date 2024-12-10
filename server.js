@@ -328,6 +328,13 @@ app.post('/api/generate-post', async (req, res) => {
             return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
         }
 
+        // customPrompt 값 확인
+        if (!settings.customPrompt) {
+            console.error('customPrompt가 전달되지 않았습니다.');
+            return res.status(400).json({ success: false, error: '프롬프트 내용이 없습니다.' });
+        }
+        console.log('전달된 customPrompt:', settings.customPrompt);
+
         // 작업 ID 생성 및 저장
         const jobId = `${userId}-${Date.now()}`;
         console.log('작업 ID:', jobId);

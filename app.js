@@ -2374,6 +2374,12 @@ async function generatePost() {
         return;
     }
 
+    // 프롬프트 검증
+        if (!settings.title || !settings.content) {
+            alert('프롬프트 제목과 내용을 입력하세요.');
+            return;
+        }
+
     if (!settings.topicSelection) {
         alert("주제 선택이 필요합니다.");
         return;
