@@ -501,11 +501,25 @@ function resolvePrompt(topic, settings) {
 
 
 // AI 콘텐츠 생성
-async function generatePostContent(prompt, settings) {
+async function generatePostContent(userId, prompt, settings) {
     const aiConfig = {
         apiUrl: 'https://api.openai.com/v1/chat/completions',
         model: settings.aiSelection,
     };
+
+    // Firestore에서 사용자 API 키 로드
+    let apiKey;
+    try {
+        const userDoc = await db.collection('settings').doc(userId).get();
+        apiKey = userDoc.data()?.openAIKey;
+
+        if (!apiKey) {
+            throw new Error('OpenAI API 키가 설정되지 않았습니다.');
+        }
+    } catch (error) {
+        console.error('Firestore에서 API 키 로드 오류:', error.message);
+        throw new Error('API 키를 로드하는 중 오류가 발생했습니다.');
+    }
 
     const requestData = {
         model: aiConfig.model,
@@ -517,12 +531,18 @@ async function generatePostContent(prompt, settings) {
         temperature: 0.7,
     };
 
-    const response = await axios.post(aiConfig.apiUrl, requestData, {
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    });
+    try {
+        const response = await axios.post(aiConfig.apiUrl, requestData, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+        });
 
-    return response.data.choices[0].message.content.trim();
+        return response.data.choices[0].message.content.trim();
+    } catch (error) {
+        console.error('OpenAI API 호출 오류:', error.response ? error.response.data : error.message);
+        throw new Error('OpenAI API 호출 실패');
+    }
 }
+
 
 // 이미지 처리
 async function processImages(settings, topic) {
@@ -625,7 +645,7 @@ async function generatePostData(userId, settings, topic) {
         console.log('생성된 프롬프트:', prompt);
 
         // AI 콘텐츠 생성
-        const content = await generatePostContent(prompt, settings.language, settings.tone, settings.emojiToggle, settings.aiSelection);
+        const content = await generatePostContent(userId, prompt, settings); // userId 전달
         console.log('생성된 콘텐츠:', content);
 
         // 이미지 처리
@@ -639,7 +659,7 @@ async function generatePostData(userId, settings, topic) {
         // 최종 데이터 반환
         return {
             title: topic,
-            content: `${content}\n\n${images.map((img) => `<img src="${img.url}" alt="이미지" /><p>${img.source}</p>`).join('\n')}\n\n${ads}`,
+            content: `${content}\n\n${generateImageHTML(images, settings.showImageSource)}\n\n${ads}`,
             images,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
         };
@@ -648,6 +668,7 @@ async function generatePostData(userId, settings, topic) {
         throw error;
     }
 }
+
 
 // 블로그 자격 증명 가져오기
 async function fetchBlogCredentials(userId, blogSelection) {
