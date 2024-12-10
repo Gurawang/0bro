@@ -486,64 +486,49 @@ async function handleScheduledPosting(jobId, userId, settings) {
 }
 
 
-// Firestore 데이터 불러오기
-async function getSettings(userId, blogSelection) {
-    const doc = await db.collection('settings').doc(userId).get(); // firestore -> db로 수정
-    if (!doc.exists) {
-        throw new Error('해당 사용자의 설정 데이터를 찾을 수 없습니다.');
-    }
-
-    const settings = doc.data();
-    console.log('Firestore에서 불러온 사용자 데이터:', settings); // 전체 데이터 로그
-
-    if (blogSelection === 'wordpress') {
-        console.log('WordPress 관련 설정 확인 중...');
-        console.log('settings.wordpress:', settings.wordpress); // WordPress 설정 전체 로그
-        console.log('settings.wordpress.username:', settings.wordpress?.username); // Username 로그
-        console.log('settings.wordpress.appPassword:', settings.wordpress?.appPassword); // App Password 로그
-
-        if (!settings.wordpress || !settings.wordpress.username || !settings.wordpress.appPassword) {
-            console.error('WordPress 설정 값이 누락되었습니다.'); // 에러 상황 로그
-            throw new Error('WordPress 설정 값이 누락되었습니다.');
+// Firestore 데이터 불러오기: 추가 데이터 포함
+async function getSettings(userId, blogSelection, blogUrl) {
+    try {
+        const userDoc = await db.collection('settings').doc(userId).get();
+        if (!userDoc.exists) {
+            throw new Error('사용자 기본 설정 데이터를 찾을 수 없습니다.');
         }
 
-        return {
-            blogUrl: settings.wordpress.blogUrl,
-            username: settings.wordpress.username,
-            appPassword: settings.wordpress.appPassword,
-        };
-    } else if (blogSelection === 'googleBlog') {
-        console.log('Google Blog 관련 설정 확인 중...');
-        console.log('settings.googleBlog:', settings.googleBlog); // Google Blog 설정 전체 로그
-        console.log('settings.googleBlog.username:', settings.googleBlog?.username); // Username 로그
-        console.log('settings.googleBlog.apiKey:', settings.googleBlog?.apiKey); // API Key 로그
+        const userData = userDoc.data();
+        let additionalData = {};
 
-        if (!settings.googleBlog || !settings.googleBlog.username || !settings.googleBlog.apiKey) {
-            console.error('Google Blog 설정 값이 누락되었습니다.'); // 에러 상황 로그
-            throw new Error('Google Blog 설정 값이 누락되었습니다.');
+        if (blogSelection === 'wordpress') {
+            const wordpressDoc = await db.collection('settings').doc(userId).collection('wordpress').doc(blogUrl).get();
+            if (wordpressDoc.exists) {
+                additionalData = wordpressDoc.data();
+            } else {
+                throw new Error('WordPress 추가 데이터를 찾을 수 없습니다.');
+            }
+        } else if (blogSelection === 'googleBlog') {
+            const googleBlogDoc = await db.collection('settings').doc(userId).collection('googleBlog').doc(blogUrl).get();
+            if (googleBlogDoc.exists) {
+                additionalData = googleBlogDoc.data();
+            } else {
+                throw new Error('Google Blog 추가 데이터를 찾을 수 없습니다.');
+            }
+        } else {
+            throw new Error('지원하지 않는 블로그 플랫폼입니다.');
         }
 
-        return {
-            blogUrl: settings.googleBlog.blogUrl,
-            username: settings.googleBlog.username,
-            apiKey: settings.googleBlog.apiKey,
-        };
-    } else {
-        console.error('지원하지 않는 블로그 플랫폼입니다.'); // 지원하지 않는 플랫폼 로그
-        throw new Error('지원하지 않는 블로그 플랫폼입니다.');
+        return { ...userData, ...additionalData };
+    } catch (error) {
+        console.error('Firestore 데이터 로드 중 오류:', error.message);
+        throw error;
     }
 }
 
-
-// 워드프레스 포스팅 함수
+// WordPress 포스팅 함수
 async function postToWordPress(settings, postData) {
     try {
-        // 디버깅용 로그 추가
-        console.log('포스팅 요청 데이터 확인:');
+        console.log('WordPress 포스팅 요청 데이터 확인:');
         console.log('Blog URL:', settings.blogUrl);
         console.log('Username:', settings.username);
         console.log('App Password:', settings.appPassword);
-        console.log('Base64 Encoded Auth String:', Buffer.from(`${settings.username}:${settings.appPassword}`).toString('base64'));
         console.log('Post Data:', postData);
 
         const response = await axios.post(
@@ -561,15 +546,14 @@ async function postToWordPress(settings, postData) {
             }
         );
 
-        console.log('워드프레스 포스팅 성공:', response.data);
+        console.log('WordPress 포스팅 성공:', response.data);
         return response.data;
     } catch (error) {
-        console.error('워드프레스 포스팅 오류:', error.message);
+        console.error('WordPress 포스팅 오류:', error.message);
 
-        // 에러 응답 세부 정보 로그
         if (error.response) {
-            console.error('에러 응답 상태 코드:', error.response.status);
-            console.error('에러 응답 데이터:', error.response.data);
+            console.error('응답 상태 코드:', error.response.status);
+            console.error('응답 데이터:', error.response.data);
         } else {
             console.error('네트워크 또는 서버 오류:', error.message);
         }
@@ -582,22 +566,33 @@ async function postToWordPress(settings, postData) {
 async function postToGoogleBlog(settings, postData) {
     try {
         console.log('Google Blog 포스팅 요청 데이터 확인:');
-        console.log('Blog URL:', settings.blogUrl);
-        console.log('Username:', settings.username);
-        console.log('API Key:', settings.apiKey);
-        console.log('Post Data:', postData);
+        console.log('Blog ID:', settings.blogId);
+        console.log('Access Token 생성을 위한 Client ID:', settings.clientId);
 
+        // Access Token 생성
+        const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+            client_id: settings.clientId,
+            client_secret: settings.clientSecret,
+            refresh_token: settings.refreshToken,
+            grant_type: 'refresh_token',
+        });
+
+        const accessToken = tokenResponse.data.access_token;
+
+        console.log('생성된 Access Token:', accessToken);
+
+        // Google Blog API 호출
         const response = await axios.post(
-            `${settings.blogUrl}/posts/insert`, // Google Blog API 경로 예시
+            `https://www.googleapis.com/blogger/v3/blogs/${settings.blogId}/posts/`,
             {
+                kind: 'blogger#post',
                 title: postData.title,
                 content: postData.content,
-                status: 'PUBLISHED',
             },
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${settings.apiKey}`,
+                    Authorization: `Bearer ${accessToken}`,
                 },
             }
         );
@@ -608,8 +603,8 @@ async function postToGoogleBlog(settings, postData) {
         console.error('Google Blog 포스팅 오류:', error.message);
 
         if (error.response) {
-            console.error('에러 응답 상태 코드:', error.response.status);
-            console.error('에러 응답 데이터:', error.response.data);
+            console.error('응답 상태 코드:', error.response.status);
+            console.error('응답 데이터:', error.response.data);
         } else {
             console.error('네트워크 또는 서버 오류:', error.message);
         }
@@ -619,9 +614,9 @@ async function postToGoogleBlog(settings, postData) {
 }
 
 // 포스팅 실행 함수
-async function handlePosting(userId, blogSelection, postData) {
+async function handlePosting(userId, blogSelection, blogUrl, postData) {
     try {
-        const settings = await getSettings(userId, blogSelection); // Firestore에서 플랫폼별 설정 가져오기
+        const settings = await getSettings(userId, blogSelection, blogUrl);
 
         if (blogSelection === 'wordpress') {
             await postToWordPress(settings, postData);
@@ -637,6 +632,7 @@ async function handlePosting(userId, blogSelection, postData) {
         throw error;
     }
 }
+
 
 
 

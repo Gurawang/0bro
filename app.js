@@ -1494,7 +1494,6 @@ function deleteGoogleBlog(id) {
 //블로그 옵션 코드
 
 
-
 async function loadRegisteredBlogs() {
     console.log("loadRegisteredBlogs 함수가 호출되었습니다.");
     const userId = auth.currentUser?.uid;
@@ -1508,12 +1507,14 @@ async function loadRegisteredBlogs() {
     blogContainer.innerHTML = ""; // 기존 목록 초기화
 
     try {
+        // Firestore에서 WordPress 및 Google Blog 데이터를 가져옴
         const wordpressSnapshot = await db.collection("settings").doc(userId).collection("wordpress").get();
         const googleBlogSnapshot = await db.collection("settings").doc(userId).collection("googleBlog").get();
 
         if (wordpressSnapshot.empty && googleBlogSnapshot.empty) {
             blogContainer.innerHTML = "<p>등록된 블로그가 없습니다.</p>";
         } else {
+            // WordPress 블로그 정보 렌더링
             wordpressSnapshot.forEach((doc) => {
                 const data = doc.data();
                 const listItem = document.createElement("div");
@@ -1521,13 +1522,14 @@ async function loadRegisteredBlogs() {
                 listItem.innerHTML = `
                     <span>${data.siteUrl} (워드프레스)</span>
                     <label class="toggle-label">
-                        <input type="radio" name="blogToggle" value="${data.siteUrl}" onchange="handleToggleChange(this, 'wordpress')">
+                        <input type="radio" name="blogToggle" value="${data.siteUrl}" onchange="handleToggleChange(this, 'wordpress', '${doc.id}')">
                         <span class="toggle-switch"></span>
                     </label>
                 `;
                 blogContainer.appendChild(listItem);
             });
 
+            // Google Blog 정보 렌더링
             googleBlogSnapshot.forEach((doc) => {
                 const data = doc.data();
                 const listItem = document.createElement("div");
@@ -1535,7 +1537,7 @@ async function loadRegisteredBlogs() {
                 listItem.innerHTML = `
                     <span>${data.blogUrl} (구글 블로그)</span>
                     <label class="toggle-label">
-                        <input type="radio" name="blogToggle" value="${data.blogUrl}" onchange="handleToggleChange(this, 'googleBlog')">
+                        <input type="radio" name="blogToggle" value="${data.blogUrl}" onchange="handleToggleChange(this, 'googleBlog', '${doc.id}')">
                         <span class="toggle-switch"></span>
                     </label>
                 `;
@@ -1548,36 +1550,75 @@ async function loadRegisteredBlogs() {
 }
 
 
+
 let blogSelection = null;
 let blogUrl = null;
 
-function handleToggleChange(selectedToggle, platform) {
-    // 모든 토글을 확인하고 선택되지 않은 토글을 해제
-    const toggles = document.querySelectorAll("input[name='blogToggle']");
-    toggles.forEach((toggle) => {
-        if (toggle !== selectedToggle) {
-            toggle.checked = false;
-        }
-    });
+async function handleToggleChange(selectedToggle, platform, docId) {
+    const blogUrl = selectedToggle.value;
 
-    // 선택된 값과 플랫폼 설정
-    blogSelection = platform;
-    blogUrl = selectedToggle.value;
-
-    console.log("선택된 블로그 플랫폼:", blogSelection);
+    console.log("선택된 블로그 플랫폼:", platform);
     console.log("선택된 블로그 URL:", blogUrl);
 
-    // 선택 상태를 Firebase에 저장
     const userId = auth.currentUser?.uid;
-    if (userId && blogSelection && blogUrl) {
-        db.collection("settings").doc(userId).update({ blogSelection, blogUrl })
-            .then(() => console.log("블로그 선택 정보가 저장되었습니다."))
-            .catch((error) => console.error("블로그 선택 정보 저장 실패:", error));
+
+    if (!userId || !docId) {
+        console.error("사용자 ID 또는 문서 ID가 없습니다.");
+        return;
+    }
+
+    try {
+        // Firestore에서 선택된 블로그 데이터 가져오기
+        const docRef = db.collection("settings").doc(userId).collection(platform).doc(docId);
+        const doc = await docRef.get();
+
+        if (doc.exists) {
+            const data = doc.data();
+
+            console.log("불러온 블로그 데이터:", data);
+
+            // WordPress 데이터 저장
+            if (platform === "wordpress") {
+                const { username, appPassword } = data;
+
+                // Firebase에 선택된 WordPress 정보 저장
+                await db.collection("settings").doc(userId).set(
+                    {
+                        blogSelection: platform,
+                        blogUrl,
+                        username,
+                        appPassword,
+                    },
+                    { merge: true }
+                );
+            }
+
+            // Google Blog 데이터 저장
+            if (platform === "googleBlog") {
+                const { blogId, clientId, clientSecret, refreshToken } = data;
+
+                // Firebase에 선택된 Google Blog 정보 저장
+                await db.collection("settings").doc(userId).set(
+                    {
+                        blogSelection: platform,
+                        blogUrl,
+                        blogId,
+                        clientId,
+                        clientSecret,
+                        refreshToken,
+                    },
+                    { merge: true }
+                );
+            }
+
+            console.log("블로그 선택 정보가 저장되었습니다.");
+        } else {
+            console.error("문서를 찾을 수 없습니다.");
+        }
+    } catch (error) {
+        console.error("블로그 선택 정보 저장 실패:", error);
     }
 }
-
-
-
 
 
 // 키워드 저장용 배열
@@ -2203,6 +2244,7 @@ async function loadLastAppliedSettings() {
     }
 
     try {
+        // 가장 최근 저장된 설정 불러오기
         const snapshot = await db
             .collection("settings")
             .doc(userId)
@@ -2213,12 +2255,42 @@ async function loadLastAppliedSettings() {
 
         if (!snapshot.empty) {
             const doc = snapshot.docs[0];
-            const settingsData = doc.data();
+            const savedSettings = doc.data();
 
-            // 불러온 설정을 UI에 적용
-            setCurrentSettings(settingsData);
+            console.log("가장 최근 저장된 설정이 로드되었습니다:", savedSettings);
 
-            console.log("마지막 설정이 적용되었습니다:", doc.id);
+            // 플랫폼별 설정 추가 로드
+            const userSettingsRef = db.collection("settings").doc(userId);
+
+            if (savedSettings.blogSelection === "wordpress") {
+                const wordpressDoc = await userSettingsRef
+                    .collection("wordpress")
+                    .doc(savedSettings.blogUrl) // blogUrl을 문서 ID로 사용
+                    .get();
+
+                if (wordpressDoc.exists) {
+                    const wordpressSettings = wordpressDoc.data();
+                    setCurrentSettings({ ...savedSettings, ...wordpressSettings });
+                    console.log("WordPress 설정이 로드되었습니다:", wordpressSettings);
+                } else {
+                    console.log("WordPress 설정을 찾을 수 없습니다.");
+                }
+            } else if (savedSettings.blogSelection === "googleBlog") {
+                const googleBlogDoc = await userSettingsRef
+                    .collection("googleBlog")
+                    .doc(savedSettings.blogUrl) // blogUrl을 문서 ID로 사용
+                    .get();
+
+                if (googleBlogDoc.exists) {
+                    const googleBlogSettings = googleBlogDoc.data();
+                    setCurrentSettings({ ...savedSettings, ...googleBlogSettings });
+                    console.log("Google Blog 설정이 로드되었습니다:", googleBlogSettings);
+                } else {
+                    console.log("Google Blog 설정을 찾을 수 없습니다.");
+                }
+            } else {
+                console.log("지원되지 않는 블로그 플랫폼입니다.");
+            }
 
             // 드롭다운에 선택 표시
             const dropdown = document.getElementById("savedSettingsDropdown");
@@ -2226,12 +2298,13 @@ async function loadLastAppliedSettings() {
                 dropdown.value = doc.id;
             }
         } else {
-            console.log("적용할 설정이 없습니다.");
+            console.log("저장된 설정이 없습니다.");
         }
     } catch (error) {
-        console.error("마지막 설정 불러오기 오류:", error);
+        console.error("설정 불러오기 오류:", error);
     }
 }
+
 
 
 
@@ -2258,6 +2331,26 @@ function getCurrentSettings() {
     const activeTimeButton = document.querySelector(".time-button.active")?.dataset.time || null;
     const customInterval = document.getElementById("customInterval")?.value || "";
     const timeButtonType = activeTimeButton ? "button" : customInterval ? "custom" : null;
+
+    const blogSelection = document.querySelector('input[name="blogToggle"]:checked')?.dataset.platform || null;
+    const blogUrl = document.querySelector('input[name="blogToggle"]:checked')?.value || "";
+
+    let additionalData = {};
+    if (blogSelection === "wordpress") {
+        const wordpressData = document.querySelector(`[data-blog-url="${blogUrl}"]`);
+        additionalData = {
+            username: wordpressData?.dataset.username || "",
+            appPassword: wordpressData?.dataset.appPassword || "",
+        };
+    } else if (blogSelection === "googleBlog") {
+        const googleBlogData = document.querySelector(`[data-blog-url="${blogUrl}"]`);
+        additionalData = {
+            blogId: googleBlogData?.dataset.blogId || "",
+            clientId: googleBlogData?.dataset.clientId || "",
+            clientSecret: googleBlogData?.dataset.clientSecret || "",
+            refreshToken: googleBlogData?.dataset.refreshToken || "",
+        };
+    }
     
 
     return {
@@ -2266,6 +2359,7 @@ function getCurrentSettings() {
         topicSelection: document.querySelector('input[name="topicToggle"]:checked')?.value || null,
         manualTopic: document.getElementById("topicInput")?.value || "",
         rssInput: document.getElementById("rssInput")?.value || "",
+        ...additionalData,
         parentSelection,
         savedPromptSelection,
         title: document.getElementById("promptTitleInput")?.value.trim() || "",
@@ -2306,6 +2400,15 @@ function getCurrentSettings() {
 
 // 저장된 설정을 페이지에 적용
 function setCurrentSettings(settingsData) {
+
+    if (settingsData.blogSelection === "wordpress") {
+        document.querySelector(`input[name="blogToggle"][value="${settingsData.blogUrl}"]`)?.click();
+        console.log("WordPress 설정 적용:", settingsData);
+    } else if (settingsData.blogSelection === "googleBlog") {
+        document.querySelector(`input[name="blogToggle"][value="${settingsData.blogUrl}"]`)?.click();
+        console.log("Google Blog 설정 적용:", settingsData);
+    }
+
     // 프롬프트 설정
     const parentSelection = settingsData.parentSelection || "defaultPrompt";
     const savedPromptSelection = settingsData.savedPromptSelection || null;
