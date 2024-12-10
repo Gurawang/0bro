@@ -577,6 +577,16 @@ async function postToGoogleBlog(blogId, clientId, clientSecret, refreshToken, po
     }
 }
 
+// URL을 Firestore 문서 경로로 안전하게 변환
+function encodeFirestorePath(url) {
+    return encodeURIComponent(url);
+}
+
+// Firestore 문서 경로를 원래 URL로 복원
+function decodeFirestorePath(encodedPath) {
+    return decodeURIComponent(encodedPath);
+}
+
 // 포스팅 실행 함수
 async function handlePosting(userId, blogSelection, blogUrl, postData) {
     try {
@@ -587,19 +597,23 @@ async function handlePosting(userId, blogSelection, blogUrl, postData) {
         console.log("Post Data:", postData);
 
         const userSettingsRef = db.collection('settings').doc(userId);
+        const encodedBlogUrl = encodeFirestorePath(blogUrl); // URL을 Firestore 경로로 변환
         let settings = null; // 설정 객체 초기화
 
         if (blogSelection === 'wordpress') {
             console.log("WordPress 설정 불러오기 시작");
-            const wordpressDoc = await userSettingsRef.collection('wordpress').doc(blogUrl).get();
+            const wordpressDoc = await userSettingsRef.collection('wordpress').doc(encodedBlogUrl).get();
 
             if (!wordpressDoc.exists) {
-                console.error("WordPress 설정을 찾을 수 없습니다. Blog URL:", blogUrl);
+                console.error("WordPress 설정을 찾을 수 없습니다. Blog URL:", encodedBlogUrl);
                 throw new Error('WordPress 설정을 찾을 수 없습니다.');
             }
 
             settings = wordpressDoc.data();
             console.log("WordPress 설정 로드 성공:", settings);
+
+            const decodedBlogUrl = decodeFirestorePath(encodedBlogUrl); // Firestore 경로를 원래 URL로 복원
+            settings.blogUrl = decodedBlogUrl; // 복원된 URL을 설정에 저장
 
             if (!settings.blogUrl || !settings.username || !settings.appPassword) {
                 console.error("WordPress 설정 데이터 누락. 로드된 설정:", settings);
@@ -615,15 +629,18 @@ async function handlePosting(userId, blogSelection, blogUrl, postData) {
 
         } else if (blogSelection === 'googleBlog') {
             console.log("Google Blog 설정 불러오기 시작");
-            const googleBlogDoc = await userSettingsRef.collection('googleBlog').doc(blogUrl).get();
+            const googleBlogDoc = await userSettingsRef.collection('googleBlog').doc(encodedBlogUrl).get();
 
             if (!googleBlogDoc.exists) {
-                console.error("Google Blog 설정을 찾을 수 없습니다. Blog URL:", blogUrl);
+                console.error("Google Blog 설정을 찾을 수 없습니다. Blog URL:", encodedBlogUrl);
                 throw new Error('Google Blog 설정을 찾을 수 없습니다.');
             }
 
             settings = googleBlogDoc.data();
             console.log("Google Blog 설정 로드 성공:", settings);
+
+            const decodedBlogUrl = decodeFirestorePath(encodedBlogUrl); // Firestore 경로를 원래 URL로 복원
+            settings.blogUrl = decodedBlogUrl; // 복원된 URL을 설정에 저장
 
             if (!settings.blogId || !settings.clientId || !settings.clientSecret || !settings.refreshToken) {
                 console.error("Google Blog 설정 데이터 누락. 로드된 설정:", settings);
@@ -649,6 +666,8 @@ async function handlePosting(userId, blogSelection, blogUrl, postData) {
         throw error;
     }
 }
+
+
 
 
 async function loadSettings(userId, blogSelection, blogUrl) {
