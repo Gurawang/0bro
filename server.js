@@ -334,7 +334,7 @@ app.post('/api/generate-post', async (req, res) => {
             return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
         }
 
-        const { blogSelection, blogUrl } = settings;
+        const { blogSelection, blogUrl, username, appPassword, googleApiKey, blogId } = settings;
 
         if (!blogSelection || !blogUrl) {
             return res.status(400).json({ error: '블로그 선택 정보가 없습니다.' });
@@ -413,11 +413,16 @@ async function handleSinglePosting(jobId, userId, settings, keyword) {
         console.log(`[단일 포스팅] 키워드: ${keyword}`);
         const topic = await resolvePostTopic(settings, keyword);
         const postData = await generatePostData(userId, settings, topic);
-        const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
 
-        console.log('[단일 포스팅] 블로그 인증 정보:', blogCredentials);
-        const result = await postToBlog(settings.blogSelection, blogCredentials, postData);
-        console.log('[단일 포스팅] 포스팅 결과:', result);
+        console.log('[단일 포스팅] 포스팅 데이터:', postData);
+
+        if (settings.blogSelection === 'wordpress') {
+            await postToWordPress(settings, postData);
+        } else if (settings.blogSelection === 'googleBlog') {
+            await postToGoogleBlog(settings, postData);
+        } else {
+            throw new Error('지원하지 않는 블로그 플랫폼입니다.');
+        }
 
         await updatePostHistory(userId, postData);
     } catch (error) {
@@ -439,11 +444,15 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
             const postData = await generatePostData(userId, settings, topic);
             console.log(`[연속 포스팅] 생성된 포스팅 데이터:`, postData);
 
-            const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
-            console.log('[연속 포스팅] 블로그 인증 정보:', blogCredentials);
+            if (settings.blogSelection === 'wordpress') {
+                await postToWordPress(settings, postData);
+            } else if (settings.blogSelection === 'googleBlog') {
+                await postToGoogleBlog(settings, postData);
+            } else {
+                throw new Error('지원하지 않는 블로그 플랫폼입니다.');
+            }
 
-            const result = await postToBlog(settings.blogSelection, blogCredentials, postData);
-            console.log('[연속 포스팅] 포스팅 결과:', result);
+            console.log(`[연속 포스팅 ${i + 1}/${keywords.length}] 포스팅 완료`);
 
             await updatePostHistory(userId, postData);
 
@@ -459,8 +468,6 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
     }
 }
 
-
-
 // 예약 포스팅 처리
 async function handleScheduledPosting(jobId, userId, settings) {
     try {
@@ -474,16 +481,75 @@ async function handleScheduledPosting(jobId, userId, settings) {
         }
 
         const topic = await resolvePostTopic(settings, settings.keywords[0]);
-        const postData = await generatePostData(userId, settings, topic);
-        const blogCredentials = await fetchBlogCredentials(userId, settings.blogSelection);
+        console.log('[예약 포스팅] 생성된 주제:', topic);
 
-        console.log('[예약 포스팅] 블로그 인증 정보:', blogCredentials);
-        const result = await postToBlog(settings.blogSelection, blogCredentials, postData);
-        console.log('[예약 포스팅] 포스팅 결과:', result);
+        const postData = await generatePostData(userId, settings, topic);
+        console.log('[예약 포스팅] 생성된 포스팅 데이터:', postData);
+
+        if (settings.blogSelection === 'wordpress') {
+            await postToWordPress(settings, postData);
+        } else if (settings.blogSelection === 'googleBlog') {
+            await postToGoogleBlog(settings, postData);
+        } else {
+            throw new Error('지원하지 않는 블로그 플랫폼입니다.');
+        }
+
+        console.log('[예약 포스팅] 포스팅 완료');
 
         await updatePostHistory(userId, postData);
     } catch (error) {
         console.error('[예약 포스팅 오류]:', error.message);
+        throw error;
+    }
+}
+
+
+// 워드프레스 포스팅
+async function postToWordPress(settings, postData) {
+    try {
+        const response = await axios.post(
+            `${settings.blogUrl}/wp-json/wp/v2/posts`,
+            {
+                title: postData.title,
+                content: postData.content,
+                status: 'publish',
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Basic ${Buffer.from(`${settings.username}:${settings.appPassword}`).toString('base64')}`,
+                },
+            }
+        );
+        console.log('워드프레스 포스팅 성공:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('워드프레스 포스팅 오류:', error.message);
+        throw error;
+    }
+}
+
+// 구글 블로그 포스팅
+async function postToGoogleBlog(settings, postData) {
+    try {
+        const response = await axios.post(
+            `https://www.googleapis.com/blogger/v3/blogs/${settings.blogId}/posts/`,
+            {
+                kind: 'blogger#post',
+                title: postData.title,
+                content: postData.content,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${settings.googleApiKey}`,
+                },
+            }
+        );
+        console.log('구글 블로그 포스팅 성공:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('구글 블로그 포스팅 오류:', error.message);
         throw error;
     }
 }
@@ -674,51 +740,6 @@ async function generatePostData(userId, settings, topic) {
         throw error;
     }
 }
-
-
-// 블로그 자격 증명 가져오기
-async function fetchBlogCredentials(userId, blogSelection) {
-    try {
-        if (blogSelection === 'wordpress') {
-            const wordpressSnapshot = await db
-                .collection('settings')
-                .doc(userId)
-                .collection('wordpress')
-                .where('siteUrl', '==', blogUrl)
-                .get();
-
-            if (wordpressSnapshot.empty) {
-                throw new Error('WordPress 자격 증명이 존재하지 않습니다.');
-            }
-
-            return wordpressSnapshot.docs[0].data();
-        } else if (blogSelection === 'googleBlog') {
-            const googleSnapshot = await db
-                .collection('settings')
-                .doc(userId)
-                .collection('googleBlog')
-                .where('blogUrl', '==', blogUrl)
-                .get();
-
-            if (googleSnapshot.empty) {
-                throw new Error('Google Blog 자격 증명이 존재하지 않습니다.');
-            }
-
-            return googleSnapshot.docs[0].data();
-        } else {
-            throw new Error('지원하지 않는 블로그 플랫폼입니다.');
-        }
-    } catch (error) {
-        console.error('[fetchBlogCredentials 오류]:', error.message);
-        throw error;
-    }
-}
-
-
-
-
-
-
 
 
 // 서버 실행
