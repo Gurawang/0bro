@@ -2332,9 +2332,15 @@ function getCurrentSettings() {
     const customInterval = document.getElementById("customInterval")?.value || "";
     const timeButtonType = activeTimeButton ? "button" : customInterval ? "custom" : null;
 
-    const selectedBlogUrl = document.querySelector('input[name="blogToggle"]:checked')?.value || "";
-    const usernameInput = document.querySelector(`[data-blog-url="${selectedBlogUrl}"] #usernameInput`)?.value || "";
-    const appPasswordInput = document.querySelector(`[data-blog-url="${selectedBlogUrl}"] #appPasswordInput`)?.value || "";
+    // 블로그 관련 데이터 초기화
+    const blogSelection = document.querySelector('input[name="blogToggle"]:checked')?.dataset.blogType || ""; // 블로그 플랫폼
+    const blogUrl = document.querySelector('input[name="blogToggle"]:checked')?.value || ""; // 블로그 URL
+    const username = document.querySelector(`[data-blog-url="${blogUrl}"] .usernameInput`)?.value || "";
+    const appPassword = document.querySelector(`[data-blog-url="${blogUrl}"] .appPasswordInput`)?.value || "";
+    const blogId = document.querySelector(`[data-blog-url="${blogUrl}"] .blogIdInput`)?.value || "";
+    const clientId = document.querySelector(`[data-blog-url="${blogUrl}"] .clientIdInput`)?.value || "";
+    const clientSecret = document.querySelector(`[data-blog-url="${blogUrl}"] .clientSecretInput`)?.value || "";
+    const refreshToken = document.querySelector(`[data-blog-url="${blogUrl}"] .refreshTokenInput`)?.value || "";
     
 
     return {
