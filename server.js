@@ -329,11 +329,11 @@ app.post('/api/generate-post', async (req, res) => {
         }
 
         // customPrompt 값 확인
-        if (!settings.content || settings.content.trim() === "") {
+        if (!settings.customPrompt || settings.customPrompt.trim() === "") {
             console.error('프롬프트 내용이 없습니다.');
             return res.status(400).json({ success: false, error: '프롬프트 내용이 없습니다.' });
         }
-        console.log('전달된 프롬프트 내용:', settings.content);
+        console.log('전달된 프롬프트 내용:', settings.customPrompt);
 
         // 작업 ID 생성 및 저장
         const jobId = `${userId}-${Date.now()}`;
