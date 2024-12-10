@@ -1495,8 +1495,6 @@ function deleteGoogleBlog(id) {
 
 
 
-let blogSelection = null;
-
 async function loadRegisteredBlogs() {
     console.log("loadRegisteredBlogs 함수가 호출되었습니다.");
     const userId = auth.currentUser?.uid;
@@ -1550,9 +1548,10 @@ async function loadRegisteredBlogs() {
 }
 
 
-let blogUrl = null; // 선택된 블로그 URL
+let blogSelection = null;
+let blogUrl = null;
 
-function handleToggleChange(selectedToggle) {
+function handleToggleChange(selectedToggle, platform) {
     // 모든 토글을 확인하고 선택되지 않은 토글을 해제
     const toggles = document.querySelectorAll("input[name='blogToggle']");
     toggles.forEach((toggle) => {
@@ -1561,30 +1560,23 @@ function handleToggleChange(selectedToggle) {
         }
     });
 
-    // 선택된 토글의 값과 플랫폼 확인
-    const selectedValue = selectedToggle.value;
-    if (selectedValue.includes("wordpress")) {
-        blogSelection = "wordpress";
-    } else if (selectedValue.includes("google")) {
-        blogSelection = "googleBlog";
-    } else {
-        blogSelection = null;
-    }
+    // 선택된 값과 플랫폼 설정
+    blogSelection = platform;
+    blogUrl = selectedToggle.value;
 
-    blogUrl = selectedValue;
-
-    // 선택된 값 로깅
     console.log("선택된 블로그 플랫폼:", blogSelection);
     console.log("선택된 블로그 URL:", blogUrl);
 
-    // 선택 상태를 저장하려면 Firebase나 localStorage 업데이트 추가
+    // 선택 상태를 Firebase에 저장
     const userId = auth.currentUser?.uid;
-    if (userId) {
+    if (userId && blogSelection && blogUrl) {
         db.collection("settings").doc(userId).update({ blogSelection, blogUrl })
             .then(() => console.log("블로그 선택 정보가 저장되었습니다."))
             .catch((error) => console.error("블로그 선택 정보 저장 실패:", error));
     }
 }
+
+
 
 
 
@@ -2266,9 +2258,12 @@ function getCurrentSettings() {
     const activeTimeButton = document.querySelector(".time-button.active")?.dataset.time || null;
     const customInterval = document.getElementById("customInterval")?.value || "";
     const timeButtonType = activeTimeButton ? "button" : customInterval ? "custom" : null;
+    const blogSelection = document.querySelector('input[name="blogToggle"]:checked')?.dataset.platform || null;
+    const blogUrl = document.querySelector('input[name="blogToggle"]:checked')?.value || null;
 
     return {
-        blogSelection: document.querySelector('input[name="blogToggle"]:checked')?.value || null,
+        blogSelection,
+        blogUrl,
         topicSelection: document.querySelector('input[name="topicToggle"]:checked')?.value || null,
         manualTopic: document.getElementById("topicInput")?.value || "",
         rssInput: document.getElementById("rssInput")?.value || "",
@@ -2336,6 +2331,15 @@ function setCurrentSettings(settingsData) {
     if (settingsData.title && settingsData.content) {
         document.getElementById("promptTitleInput").value = settingsData.title;
         document.getElementById("savedPromptContent").value = settingsData.content;
+    }
+
+    if (settingsData.blogSelection && settingsData.blogUrl) {
+        const blogToggle = document.querySelector(
+            `input[name="blogToggle"][value="${settingsData.blogUrl}"][data-platform="${settingsData.blogSelection}"]`
+        );
+        if (blogToggle) {
+            blogToggle.checked = true;
+        }
     }
 
     // 키워드 복원

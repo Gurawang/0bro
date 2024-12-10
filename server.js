@@ -334,13 +334,14 @@ app.post('/api/generate-post', async (req, res) => {
             return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
         }
 
-        const blogSelection = settings.blogSelection;
+        const { blogSelection, blogUrl } = settings;
 
-        if (!blogSelection) {
+        if (!blogSelection || !blogUrl) {
             return res.status(400).json({ error: '블로그 선택 정보가 없습니다.' });
         }
 
-        console.log('전달된 블로그 선택:', blogSelection);
+        console.log('선택된 블로그 플랫폼:', blogSelection);
+        console.log('선택된 블로그 URL:', blogUrl);
 
         // customPrompt 값 확인
         if (!settings.customPrompt || settings.customPrompt.trim() === "") {
@@ -677,31 +678,42 @@ async function generatePostData(userId, settings, topic) {
 
 // 블로그 자격 증명 가져오기
 async function fetchBlogCredentials(userId, blogSelection) {
-    console.log('선택된 블로그 플랫폼:', blogSelection);
     try {
         if (blogSelection === 'wordpress') {
-        const docPath = `settings/${userId}/wordpress/wordpress`.replace(/\/+/g, '/'); // 중복된 슬래시 제거
-        const wordpressSnapshot = await db.doc(docPath).get();
-        if (!wordpressSnapshot.exists) {
-            throw new Error('WordPress 자격 증명이 존재하지 않습니다.');
-        }
-        return wordpressSnapshot.data();
-    
+            const wordpressSnapshot = await db
+                .collection('settings')
+                .doc(userId)
+                .collection('wordpress')
+                .where('siteUrl', '==', blogUrl)
+                .get();
+
+            if (wordpressSnapshot.empty) {
+                throw new Error('WordPress 자격 증명이 존재하지 않습니다.');
+            }
+
+            return wordpressSnapshot.docs[0].data();
         } else if (blogSelection === 'googleBlog') {
-            const googleDocPath = `settings/${userId}/googleBlog/googleBlog`.replace(/\/+/g, '/');
-            const googleSnapshot = await db.doc(googleDocPath).get();
-            if (!googleSnapshot.exists) {
+            const googleSnapshot = await db
+                .collection('settings')
+                .doc(userId)
+                .collection('googleBlog')
+                .where('blogUrl', '==', blogUrl)
+                .get();
+
+            if (googleSnapshot.empty) {
                 throw new Error('Google Blog 자격 증명이 존재하지 않습니다.');
             }
-            return googleSnapshot.data();
+
+            return googleSnapshot.docs[0].data();
         } else {
-            throw new Error(`알 수 없는 블로그 플랫폼입니다: ${blogSelection}`);
+            throw new Error('지원하지 않는 블로그 플랫폼입니다.');
         }
     } catch (error) {
         console.error('[fetchBlogCredentials 오류]:', error.message);
         throw error;
     }
 }
+
 
 
 
