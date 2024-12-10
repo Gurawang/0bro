@@ -1,13 +1,15 @@
 const express = require('express');
 const axios = require('axios');
-const admin = require('firebase-admin');
+
 const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
 const PORT = 5000;
 
+
 // Firebase Admin 초기화
+const admin = require('firebase-admin');
 admin.initializeApp({
     credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
@@ -16,33 +18,27 @@ admin.initializeApp({
     }),
     databaseURL: process.env.FIREBASE_DATABASE_URL,
 });
-
 const db = admin.firestore();
 
+
+// CORS 설정
+app.use(cors({
+    origin: ['https://www.dokdolove.com'],
+    optionsSuccessStatus: 200,
+}));
+
 // 미들웨어 설정
-app.use(cors({ origin: ['https://www.dokdolove.com'], optionsSuccessStatus: 200 }));
 app.use(express.json({ limit: '10mb' })); // 요청 본문 크기를 최대 10MB로 설정
 
 // 공통 함수: Firestore에서 사용자 데이터 로드
 async function getUserData(userId) {
-    const docPath = `settings/${userId}`.replace(/\/+/g, '/'); // 중복된 슬래시 제거
-    const doc = await db.collection('settings').doc(docPath).get();
+    const doc = await db.collection('settings').doc(userId).get();
     if (!doc.exists) {
         throw new Error('사용자 데이터를 찾을 수 없습니다.');
     }
     return doc.data();
 }
 
-
-// Firestore에서 사용자 WordPress 데이터 로드
-async function getWordPressCredentials(userId) {
-    const docPath = `settings/${userId}/wordpress/wordpress`.replace(/\/+/g, '/'); // 중복된 슬래시 제거
-    const doc = await db.doc(docPath).get();
-    if (!doc.exists) {
-        throw new Error('WordPress 데이터를 찾을 수 없습니다.');
-    }
-    return doc.data();
-}
 
 // Gemini 프록시 엔드포인트
 app.post('/proxy/gemini', async (req, res) => {
