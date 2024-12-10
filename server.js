@@ -591,12 +591,12 @@ async function handlePosting(userId, blogSelection, blogUrl, postData) {
 
         if (blogSelection === 'wordpress') {
             console.log("WordPress 설정 불러오기 시작");
-            const blogUrl = await userSettings.blogUrl;
+            
             const username = await userSettings.username;
             const appPassword = await userSettings.appPassword;
 
             console.log("WordPress 포스팅 데이터 확인:");
-            console.log("Blog URL:", settings.blogUrl);
+            
             console.log("Username:", settings.username);
             console.log("App Password:", settings.appPassword);
 
