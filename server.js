@@ -488,7 +488,7 @@ async function handleScheduledPosting(jobId, userId, settings) {
 
 // Firestore 데이터 불러오기
 async function getSettings(userId, blogSelection) {
-    const doc = await firestore.collection('settings').doc(userId).get();
+    const doc = await db.collection('settings').doc(userId).get(); // <-- 수정된 참조
     if (!doc.exists) {
         throw new Error('해당 사용자의 설정 데이터를 찾을 수 없습니다.');
     }
