@@ -413,7 +413,7 @@ async function handleSinglePosting(jobId, userId, settings, keyword) {
         console.log('[단일 포스팅] 포스팅 데이터:', postData);
 
         // 통합 포스팅 함수 호출
-        await handlePosting(userId, settings.blogSelection, postData);
+        await handlePosting(userId, settings.blogSelection, settings.blogUrl, postData);
 
         await updatePostHistory(userId, postData);
     } catch (error) {
@@ -437,7 +437,7 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
             console.log(`[연속 포스팅] 생성된 포스팅 데이터:`, postData);
 
             // 통합 포스팅 함수 호출
-            await handlePosting(userId, settings.blogSelection, postData);
+            await handlePosting(userId, settings.blogSelection, settings.blogUrl, postData);
 
             console.log(`[연속 포스팅 ${i + 1}/${keywords.length}] 포스팅 완료`);
 
@@ -474,7 +474,7 @@ async function handleScheduledPosting(jobId, userId, settings) {
         console.log('[예약 포스팅] 생성된 포스팅 데이터:', postData);
 
         // 통합 포스팅 함수 호출
-        await handlePosting(userId, settings.blogSelection, postData);
+        await handlePosting(userId, settings.blogSelection, settings.blogUrl, postData);
 
         console.log('[예약 포스팅] 포스팅 완료');
 
