@@ -1671,11 +1671,6 @@ function handlePromptToggleChange(toggle) {
         savedPromptRadios.forEach((radio) => {
             radio.checked = false;
         });
-    } else if (toggle.value === "savedPromptParent") {
-        // 사용자 프롬프트 선택 처리 (저장된 프롬프트 표시)
-        savedPromptListContainer.style.display = "block";
-        titleInput.disabled = false;
-        contentTextarea.disabled = false;
     } else if (toggle.value.startsWith("savedPrompt")) {
         // 저장된 프롬프트 선택 처리
         handleSavedPromptSelect(toggle.value);
@@ -1683,8 +1678,14 @@ function handlePromptToggleChange(toggle) {
         promptEditor.style.display = "block";
         titleInput.disabled = false;
         contentTextarea.disabled = false;
+    } else if (toggle.value === "savedPromptParent") {
+        // 사용자 프롬프트 선택 처리 (저장된 프롬프트 표시)
+        savedPromptListContainer.style.display = "block";
+        titleInput.disabled = false;
+        contentTextarea.disabled = false;
     }
 }
+
 
 
 // 저장된 프롬프트 불러오기
@@ -1729,22 +1730,16 @@ async function loadSavedPrompts() {
 async function handleSavedPromptSelect(promptId) {
     const userId = auth.currentUser?.uid;
 
-    console.log(`사용자 ID: ${userId}`);
-    console.log(`프롬프트 ID: ${promptId}`);
-
-    const docId = promptId.replace("savedPrompt-", ""); // 'savedPrompt-' 제거
-    console.log(`파싱된 문서 ID: ${docId}`);
-
-    if (!userId) {
-        console.error("사용자 인증이 필요합니다.");
-        alert("로그인이 필요합니다. 다시 시도해주세요.");
+    // 프롬프트 ID 유효성 검사
+    if (!promptId || !promptId.startsWith("savedPrompt-")) {
+        console.warn(`유효하지 않은 프롬프트 ID: ${promptId}`);
         return;
     }
 
-    try {
-        const docId = promptId.replace("savedPrompt-", ""); // 'savedPrompt-' 제거
-        console.log(`가져올 프롬프트 ID: ${docId}`);
+    const docId = promptId.replace("savedPrompt-", ""); // 'savedPrompt-' 제거
+    console.log(`가져올 프롬프트 ID: ${docId}`);
 
+    try {
         const doc = await db.collection("settings").doc(userId).collection("prompts").doc(docId).get();
 
         if (doc.exists) {
@@ -1763,6 +1758,7 @@ async function handleSavedPromptSelect(promptId) {
         alert("프롬프트를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
 }
+
 
 
 
