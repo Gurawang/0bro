@@ -2380,28 +2380,27 @@ async function generatePost() {
     }
 
     try {
-        const response = await fetch('/api/generate-post', {
+        const response = await fetch('https://www.dokdolove.com/api/generate-post', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userId: auth.currentUser?.uid,
+                userId: auth.currentUser?.uid, // 사용자 ID
                 settings,
+                keywords: settings.keywords || [], // 키워드 목록
             }),
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "포스팅 생성 실패");
+            const errorData = await response.json().catch(() => ({ error: '응답 처리 실패' }));
+            throw new Error(errorData.error || '작업 처리 실패');
         }
 
         const result = await response.json();
-        console.log("생성된 작업 ID:", result.jobId);
-        alert("포스팅 생성이 시작되었습니다. 히스토리를 확인하세요.");
+        console.log('작업 생성 성공:', result);
+        alert('포스팅 작업이 시작되었습니다.');
     } catch (error) {
-        console.error("생성 작업 오류:", error);
-        alert("작업 생성 중 오류가 발생했습니다. 다시 시도하세요.");
+        console.error('생성 작업 오류:', error);
+        alert('작업 생성 중 오류가 발생했습니다.');
     }
 }
 

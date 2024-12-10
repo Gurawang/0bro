@@ -319,37 +319,35 @@ function delay(ms) {
 
 // 포스팅 생성 API
 app.post('/api/generate-post', async (req, res) => {
-    const { userId, settings } = req.body;
-
-    if (!userId || !settings) {
-        return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
-    }
-
     try {
+        console.log('요청 데이터:', req.body); // 요청 데이터 확인
+        const { userId, settings, keywords } = req.body;
+
+        if (!userId || !settings || !keywords) {
+            console.error('요청 데이터 누락:', { userId, settings, keywords });
+            return res.status(400).json({ success: false, error: '요청 데이터가 누락되었습니다.' });
+        }
+
+        // Firestore 작업
         const jobId = `${userId}-${Date.now()}`;
+        console.log('작업 ID:', jobId);
+
         await db.collection('posting-jobs').doc(jobId).set({
             userId,
             settings,
+            keywords,
             status: '진행 중',
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        const keywords = settings.keywords || [];
-        if (settings.postingOption.auto) {
-            await handleAutoPosting(jobId, userId, settings, keywords);
-        } else if (settings.postingOption.schedule) {
-            await handleScheduledPosting(jobId, userId, settings);
-        } else {
-            await handleSinglePosting(jobId, userId, settings, keywords[0]);
-        }
-
-        await db.collection('posting-jobs').doc(jobId).update({ status: '완료' });
+        console.log('Firestore 작업 생성 완료');
         res.json({ success: true, jobId });
     } catch (error) {
-        console.error('작업 처리 중 오류:', error.message);
+        console.error('서버 에러 발생:', error); // 오류 로그
         res.status(500).json({ success: false, error: '작업 처리 실패' });
     }
 });
+
 
 // 주요 작업 처리 함수
 // 단일 포스팅 처리
