@@ -19,8 +19,8 @@ admin.initializeApp({
     databaseURL: process.env.FIREBASE_DATABASE_URL,
 });
 const db = admin.firestore();
-const firestore = firebase.firestore();
-firestore.settings({ ignoreUndefinedProperties: true });
+db.settings({ ignoreUndefinedProperties: true });
+
 
 // CORS 설정
 app.use(cors({
