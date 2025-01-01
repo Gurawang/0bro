@@ -928,7 +928,7 @@ body {
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 5px;
-    margin-top: 8px;
+    
     box-sizing: border-box;
 }
 
@@ -1467,14 +1467,7 @@ input:checked + .toggle-switch::after {
     box-shadow: none;
 }
 
-/* 작업 페이지 컨테이너 */
-#work-page {
-    position: relative;
-    width: 100%;
-    min-height: 100vh; /* 전체 높이 */
-    background-color: #333;
-    padding-top: 10px; /* 기본 여백: 고정바 + 헤더 높이 */
-}
+
 
 /* 고정바 스타일 */
 #fixed-bar {
@@ -1637,7 +1630,256 @@ input:checked + .toggle-switch::after {
     z-index: -1;
 }
 
+/* 로딩 오버레이 */
+#loadingOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: none; /* 기본적으로 숨김 */
+}
 
+.loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+
+#docs-page {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #333;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.post-history-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+}
+
+.post-item {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #333;
+    background-color: #505050;
+    padding: 10px;
+    height: auto; /* 높이를 내용에 따라 조정 */
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.post-item .line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.post-item .line .left {
+    display: flex;
+    gap: 10px; /* 시간과 완료 간격 */
+    align-items: center; /* 세로 정렬 */
+}
+
+/* 시간과 상태 스타일 */
+.post-item .post-time {
+    margin: 0;
+    color: #fff;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.post-item .status {
+    margin: 0; /* 여백 초기화 */
+    display: flex; /* 중앙 정렬 */
+    justify-content: center;
+    align-items: center;
+    color: #d4ff65;
+    font-weight: bold;
+    background-color: transparent;
+    border-radius: 5px;
+    padding: 5px 10px;
+    text-align: center;
+    height: 30px; /* 높이 고정 */
+    line-height: normal;
+}
+
+
+
+/* 버튼 스타일 */
+.post-item button {
+    width: 70px; /* 고정된 너비 */
+    height: 30px; /* 고정된 높이 */
+    padding: 5px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+}
+
+.post-item button.edit {
+    background-color: #ffd700;
+    color: #000;
+}
+
+.post-item button.delete {
+    background-color: #ff4d4d;
+    color: #fff;
+}
+
+/* 타이틀과 내용 텍스트 스타일 */
+.post-item .title,
+.post-item .content {
+    color: #fff;
+    margin: 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap; /* 한 줄로 표시 */
+    max-width: 75%; /* 텍스트가 버튼과 충돌하지 않도록 최대 너비 설정 */
+}
+
+/* 모달 내 아이콘 공통 스타일 */
+.icon {
+    position: absolute;
+    top: 10px;
+    font-size: 2em;
+    cursor: pointer;
+    color: #333;
+    transition: color 0.2s;
+}
+
+.icon:hover {
+    color: #007bff;
+}
+
+/* 복사 아이콘 */
+.copy-icon {
+    right: 50px; /* 닫기 버튼 왼쪽으로 배치 */
+}
+
+/* 모달 내용 스타일 */
+.modal-text {
+    white-space: pre-wrap; /* 줄바꿈과 공백 유지 */
+    line-height: 1.6; /* 텍스트 줄 간격 */
+    font-size: 1em;
+    color: #333;
+    max-height: 800px;
+    overflow-y: auto; /* 내용이 길면 스크롤 */
+}
+
+/* 모달 배경 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+/* 모달 콘텐츠 */
+.modal-content {
+    padding: 20px;
+    position: relative;
+    word-break: break-word; /* 줄바꿈 적용 */
+    white-space: pre-wrap; /* 띄어쓰기 및 줄바꿈 유지 */
+}
+
+/* 닫기 버튼 */
+.modal-content .close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 3em;
+    cursor: pointer;
+    color: #333;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.modal-content p {
+    white-space: pre-wrap; /* 줄바꿈 유지 */
+    color: #555;
+}
+
+/* 수정 모달 스타일 */
+#editModal .modal-content {
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* 각 요소 간격 */
+    width: 100%;
+    max-width: 600px; /* PC 화면에서 최대 너비 설정 */
+    box-sizing: border-box;
+}
+
+#editTitleInput,
+#editContentInput {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#editContentInput {
+    height: 200px; /* 내용 입력창의 높이 */
+    resize: vertical; /* 사용자가 높이를 조절 가능 */
+}
+
+#saveEditButton {
+    padding: 10px 15px;
+    font-size: 1em;
+    color: #fff;
+    background-color: #007bff; /* 버튼 배경색 */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+}
+
+#saveEditButton:hover {
+    background-color: #0056b3;
+}
 
 
 /* 반응형 디자인 */
@@ -1723,6 +1965,10 @@ input:checked + .toggle-switch::after {
     .settings-content {
         margin-left: 0;
         width: 100%;
+    }
+
+    .status-box {
+        max-width: 150px;
     }
 
     .api-settings {
@@ -1884,6 +2130,26 @@ input:checked + .toggle-switch::after {
         border-radius: 5px;
         cursor: pointer;
         z-index: 1;
+    }
+    
+
+    .modal {
+        width: 80%;
+        max-height: 80%;
+    }
+
+    .modal-content .close {
+        top: 5px;
+        right: 5px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 15px;
+    }
+
+    #editContentInput {
+        height: 150px;
     }
 
 

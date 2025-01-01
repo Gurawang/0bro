@@ -19,7 +19,8 @@ admin.initializeApp({
     databaseURL: process.env.FIREBASE_DATABASE_URL,
 });
 const db = admin.firestore();
-
+const firestore = firebase.firestore();
+firestore.settings({ ignoreUndefinedProperties: true });
 
 // CORS 설정
 app.use(cors({
@@ -412,12 +413,20 @@ async function handleSinglePosting(jobId, userId, settings, keyword) {
 
         console.log('[단일 포스팅] 포스팅 데이터:', postData);
 
-        // 통합 포스팅 함수 호출
-        await handlePosting(userId, settings.blogSelection, postData);
+        // 블로그 글만 생성 모드인 경우
+        if (!settings.blogSelection) {
+            console.log('[단일 포스팅] 블로그 글만 생성 모드입니다.');
+            postData.status = "미발행";
+        } else {
+            await handlePosting(userId, settings.blogSelection, postData);
+            postData.status = "완료";
+        }
 
+        postData.type = "단일";
         await updatePostHistory(userId, postData);
     } catch (error) {
         console.error('[단일 포스팅 오류]:', error.message);
+        await updatePostHistory(userId, { title: "오류 발생", content: error.message, status: "오류", type: "단일" });
         throw error;
     }
 }
@@ -430,14 +439,21 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
             const keyword = keywords[i];
             console.log(`[연속 포스팅 ${i + 1}/${keywords.length}] 키워드: ${keyword}`);
 
-            const topic = await resolvePostTopic(settings, keyword);
+            const topic = await resolvePostTopic(settings, keywords[i], i);
             console.log(`[연속 포스팅] 생성된 주제: ${topic}`);
 
             const postData = await generatePostData(userId, settings, topic);
             console.log(`[연속 포스팅] 생성된 포스팅 데이터:`, postData);
 
-            // 통합 포스팅 함수 호출
-            await handlePosting(userId, settings.blogSelection, postData);
+            if (!settings.blogSelection) {
+                console.log('[연속 포스팅] 블로그 글만 생성 모드입니다.');
+                postData.status = "미발행";
+            } else {
+                await handlePosting(userId, settings.blogSelection, postData);
+                postData.status = "완료";
+            }
+
+            postData.type = "연속";
 
             console.log(`[연속 포스팅 ${i + 1}/${keywords.length}] 포스팅 완료`);
 
@@ -450,7 +466,8 @@ async function handleAutoPosting(jobId, userId, settings, keywords) {
             }
         } catch (error) {
             console.error(`[연속 포스팅 오류 ${i + 1}/${keywords.length}]:`, error.message);
-            continue; // 다음 키워드로 진행
+            await updatePostHistory(userId, { title: "오류 발생", content: error.message, status: "오류", type: "연속" });
+            continue;
         }
     }
 }
@@ -473,14 +490,22 @@ async function handleScheduledPosting(jobId, userId, settings) {
         const postData = await generatePostData(userId, settings, topic);
         console.log('[예약 포스팅] 생성된 포스팅 데이터:', postData);
 
-        // 통합 포스팅 함수 호출
-        await handlePosting(userId, settings.blogSelection, postData);
+        if (!settings.blogSelection) {
+            console.log('[예약 포스팅] 블로그 글만 생성 모드입니다.');
+            postData.status = "미발행";
+        } else {
+            await handlePosting(userId, settings.blogSelection, postData);
+            postData.status = "완료";
+        }
+
+        postData.type = "예약";
 
         console.log('[예약 포스팅] 포스팅 완료');
 
         await updatePostHistory(userId, postData);
     } catch (error) {
         console.error('[예약 포스팅 오류]:', error.message);
+        await updatePostHistory(userId, { title: "오류 발생", content: error.message, status: "오류", type: "예약" });
         throw error;
     }
 }
@@ -642,52 +667,88 @@ async function handlePosting(userId, blogSelection, postData) {
 
 
 
-async function loadSettings(userId, blogSelection, blogUrl) {
-    const userSettingsRef = db.collection('settings').doc(userId);
-
-    if (blogSelection === 'wordpress') {
-        const wordpressDoc = await userSettingsRef.collection('wordpress').doc(blogUrl).get();
-        if (!wordpressDoc.exists) throw new Error('WordPress 설정을 찾을 수 없습니다.');
-        return wordpressDoc.data();
-    }
-
-    if (blogSelection === 'googleBlog') {
-        const googleBlogDoc = await userSettingsRef.collection('googleBlog').doc(blogUrl).get();
-        if (!googleBlogDoc.exists) throw new Error('Google Blog 설정을 찾을 수 없습니다.');
-        return googleBlogDoc.data();
-    }
-
-    throw new Error('지원하지 않는 블로그 플랫폼입니다.');
-}
-
-
 
 // 주요 Helper 함수
 // 주제 생성
-async function resolvePostTopic(settings, keyword) {
-    switch (settings.topicSelection) {
-        case 'realTimeKeyword':
+async function resolvePostTopic(settings, keyword, index = 0) {
+    try {
+        // 실시간 키워드 채택
+        if (settings.topicSelection === 'realTimeKeyword') {
+            console.log("실시간 키워드 채택 실행");
+
             const response = await axios.get('https://www.dokdolove.com/api/realtime-keywords');
-            return response.data.keywords?.[0] || '기본 주제';
-        case 'manualTopic':
-            return keyword || '기본 주제';
-        case 'rssCrawl':
+            const realTimeKeywords = response.data.keywords;
+
+            if (!realTimeKeywords || realTimeKeywords.length === 0) {
+                throw new Error("실시간 키워드를 가져오지 못했습니다.");
+            }
+
+            const selectedKeyword = realTimeKeywords[0];
+            console.log(`가져온 실시간 키워드: ${selectedKeyword}`);
+
+            // AI를 이용해 제목 생성
+            const prompt = `주어진 키워드 "${selectedKeyword}"를 기반으로 블로그 제목을 생성하세요.`;
+            return await generatePostContent(settings.userId, prompt, settings);
+        }
+
+        // 주제 직접 입력 (단일 또는 연속 포스팅)
+        else if (settings.topicSelection === 'manualTopic') {
+            const keywords = settings.keywords || [];
+            if (keywords.length === 0) throw new Error("등록된 키워드가 없습니다.");
+
+            const currentKeyword = keywords[index]; // 연속 포스팅 시 index에 따라 키워드 사용
+            console.log(`사용할 키워드: ${currentKeyword}`);
+
+            // AI를 이용해 제목 생성
+            const prompt = `주어진 키워드 "${currentKeyword}"를 기반으로 블로그 제목을 생성하세요.`;
+            return await generatePostContent(settings.userId, prompt, settings);
+        }
+
+        // RSS 크롤링
+        else if (settings.topicSelection === 'rssCrawl') {
+            console.log("RSS 크롤링 실행");
+
             const rssResponse = await axios.get(`https://www.dokdolove.com/api/rss-crawl?url=${settings.rssInput}`);
-            return rssResponse.data.extractedContent || '기본 주제';
-        default:
-            throw new Error('유효하지 않은 주제 선택 옵션입니다.');
+            const extractedContent = rssResponse.data.extractedContent;
+
+            if (!extractedContent) throw new Error("RSS에서 크롤링한 내용을 가져오지 못했습니다.");
+
+            // AI를 이용해 제목 생성
+            const prompt = `다음 내용을 기반으로 블로그 제목을 생성하세요: "${extractedContent}"`;
+            return await generatePostContent(settings.userId, prompt, settings);
+        }
+
+        // 기본값
+        else {
+            console.warn("유효한 주제 선택 옵션이 없습니다. 기본 주제를 반환합니다.");
+            return "기본 주제";
+        }
+    } catch (error) {
+        console.error("resolvePostTopic 오류:", error.message);
+        return "기본 주제"; // 오류 발생 시 기본값 반환
     }
 }
 
+
 // 프롬프트 생성
 function resolvePrompt(topic, settings) {
-    if (settings.promptSelection === 'defaultPrompt') {
-        return `다음 주제에 대한 블로그 글을 작성하세요: ${topic}`;
+    let prompt = settings.customPrompt.replace('{{topic}}', topic);
+
+    if (settings.language === 'english') {
+        prompt += "\n\nWrite the blog content in English.";
+    } else if (settings.language === 'korean') {
+        prompt += "\n\n블로그 글을 한국어로 작성해주세요.";
     }
-    if (settings.customPrompt) {
-        return settings.customPrompt.replace('{{topic}}', topic);
+
+    if (settings.tone === 'friendly') {
+        prompt += "\n\n친근하고 대화형 톤으로 작성해주세요.";
     }
-    throw new Error('프롬프트 데이터가 누락되었습니다.');
+
+    if (settings.emojiToggle) {
+        prompt += "\n\n적절한 이모티콘을 포함해주세요.";
+    }
+
+    return prompt;
 }
 
 
@@ -726,14 +787,45 @@ async function generatePostContent(userId, prompt, settings) {
 // 이미지 처리
 async function processImages(settings, topic) {
     if (!settings.useImage) return [];
+
+    let images = [];
+
+    // 이미지 검색 옵션
     if (settings.imageOption === 'search') {
-        const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-            params: { q: topic, cx: settings.imageSearchCx, key: settings.imageSearchApiKey },
-        });
-        return response.data.items.map((item) => ({ url: item.link, source: item.displayLink }));
+        const searchEngine = settings.imageSearchEngine || 'google';
+        const apiUrl = searchEngine === 'google' 
+            ? 'https://www.googleapis.com/customsearch/v1' 
+            : 'https://pixabay.com/api/';
+
+        const params = searchEngine === 'google'
+            ? { q: topic, cx: settings.imageSearchCx, key: settings.imageSearchApiKey }
+            : { q: topic, key: settings.pixabayApiKey };
+
+        const response = await axios.get(apiUrl, { params });
+        images = response.data.items.map(item => ({ url: item.link, source: item.displayLink }));
+    } else {
+        images = settings.uploadedImages.map(url => ({ url }));
     }
-    return settings.uploadedImages || [];
+
+    // Cloudinary를 이용해 이미지에 텍스트 삽입
+    if (settings.insertTextToggle && settings.insertedText) {
+        images = await Promise.all(images.map(async (img) => {
+            const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${settings.cloudinaryName}/image/upload`;
+            const overlayText = settings.insertedText;
+
+            const response = await axios.post(cloudinaryUrl, {
+                file: img.url,
+                upload_preset: settings.cloudinaryPreset,
+                transformation: [{ overlay: `text:arial_60:${overlayText}` }],
+            });
+
+            return { url: response.data.secure_url, source: img.source };
+        }));
+    }
+
+    return images;
 }
+
 
 
 // 작업 이력 저장
@@ -776,37 +868,31 @@ function generateImageHTML(images, showImageSource) {
 
 // 최종 포스팅 데이터 생성
 async function generatePostData(userId, settings, topic) {
-    try {
-        console.log('포스팅 데이터 생성 시작');
+    console.log('포스팅 데이터 생성 시작');
 
-        // 프롬프트 생성
-        const prompt = resolvePrompt(topic, settings);
-        console.log('생성된 프롬프트:', prompt);
+    // AI를 이용해 제목 생성
+    const title = await generatePostContent(userId, `다음 주제 "${topic}"에 대한 블로그 제목을 생성하세요.`, settings);
+    console.log('생성된 제목:', title);
 
-        // AI 콘텐츠 생성
-        const content = await generatePostContent(userId, prompt, settings); // userId 전달
-        console.log('생성된 콘텐츠:', content);
+    // 프롬프트 생성 및 콘텐츠 생성
+    const prompt = resolvePrompt(topic, settings);
+    const content = await generatePostContent(userId, prompt, settings);
 
-        // 이미지 처리
-        const images = await processImages(settings, topic);
-        console.log('처리된 이미지:', images);
+    // 이미지 처리
+    const images = await processImages(settings, topic);
+    const imageHtml = generateImageHTML(images, settings.showImageSource);
 
-        // 광고 생성
-        const ads = generateAds(settings);
-        console.log('생성된 광고:', ads);
+    // 광고 생성
+    const ads = generateAds(settings);
 
-        // 최종 데이터 반환
-        return {
-            title: topic,
-            content: `${content}\n\n${generateImageHTML(images, settings.showImageSource)}\n\n${ads}`,
-            images,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        };
-    } catch (error) {
-        console.error('포스팅 데이터 생성 중 오류:', error);
-        throw error;
-    }
+    // 최종 데이터 반환
+    return {
+        title: title,
+        content: `${content}\n\n${imageHtml}\n\n${ads}`,
+        images,
+    };
 }
+
 
 
 // 서버 실행

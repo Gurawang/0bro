@@ -563,24 +563,24 @@ function showContent(contentType) {
             settingsContent.innerHTML = `
                 <h2>API 연결 상태</h2>
                 <div class="status-box-container">
-                    <div class="status-box" id="statusOpenAI">
+                    <div class="status-box" id="statusOpenAI" onclick="showContent('openai')">
                         <p>OpenAI</p>
                         <span class="status">확인 중...</span>
                     </div>
                     
-                    <div class="status-box" id="statusGoogleAPI">
+                    <div class="status-box" id="statusGoogleAPI" onclick="showContent('googleImage')">
                         <p>Google API</p>
                         <span class="status">확인 중...</span>
                     </div>
-                    <div class="status-box" id="statusCloudinary">
+                    <div class="status-box" id="statusCloudinary" onclick="showContent('cloudinary')">
                         <p>Cloudinary</p>
                         <span class="status">확인 중...</span>
                     </div>
-                    <div class="status-box" id="statusPixabay">
+                    <div class="status-box" id="statusPixabay" onclick="showContent('pixabay')">
                         <p>Pixabay</p>
                         <span class="status">확인 중...</span>
                     </div>
-                    <div class="status-box" id="statusCoupang">
+                    <div class="status-box" id="statusCoupang" onclick="showContent('coupang')">
                         <p>쿠팡 파트너스</p>
                         <span class="status">확인 중...</span>
                     </div>
@@ -588,11 +588,11 @@ function showContent(contentType) {
 
                 <h2>블로그 등록 상태</h2>
                 <div class="blog-status-container">
-                    <div class="blog-status-box" id="statusWordpress">
+                    <div class="blog-status-box" id="statusWordpress" onclick="showContent('wordpress')">
                         <p>워드프레스</p>
                         <span class="count">0개 등록됨</span>
                     </div>
-                    <div class="blog-status-box" id="statusGoogleBlog">
+                    <div class="blog-status-box" id="statusGoogleBlog" onclick="showContent('google')">
                         <p>구글 블로그</p>
                         <span class="count">0개 등록됨</span>
                     </div>
@@ -1562,12 +1562,13 @@ async function handleToggleChange(selectedToggle, platform, docId) {
     console.log("선택된 블로그 플랫폼:", blogSelection);
     console.log("선택된 블로그 URL:", blogUrl);
 
-    const userId = auth.currentUser?.uid;
-
-    if (!userId || !docId) {
-        console.error("사용자 ID 또는 문서 ID가 없습니다.");
+    if (blogUrl === "manualCreate") {
+        window.loadedPlatformData = { blogSelection: "", blogUrl: "" }; // 블로그 정보 초기화
+        console.log("블로그 글만 생성 모드가 선택되었습니다.");
         return;
     }
+
+    const userId = auth.currentUser?.uid;
 
     try {
         // Firestore에서 선택된 블로그 데이터 가져오기
@@ -2224,7 +2225,13 @@ async function loadLastAppliedSettings() {
         return;
     }
 
+    const loadingOverlay = document.getElementById("loadingOverlay");
+
     try {
+
+        // 로딩 아이콘 표시
+        loadingOverlay.style.display = "flex";
+
         const snapshot = await db
             .collection("settings")
             .doc(userId)
@@ -2252,6 +2259,9 @@ async function loadLastAppliedSettings() {
         }
     } catch (error) {
         console.error("마지막 설정 불러오기 오류:", error);
+    } finally {
+        // 로딩 아이콘 숨기기
+        loadingOverlay.style.display = "none";
     }
 }
 
@@ -2281,11 +2291,7 @@ function getCurrentSettings() {
     const customInterval = document.getElementById("customInterval")?.value || "";
     const timeButtonType = activeTimeButton ? "button" : customInterval ? "custom" : null;
 
-    // 블로그 관련 데이터 초기화
-    if (!blogSelection || !blogUrl) {
-        console.error("선택된 블로그 정보가 없습니다.");
-        return {};
-    }
+    const blogExist = document.querySelector('input[name="blogToggle"]:checked')?.value || null;
 
     console.log("현재 설정 데이터 가져오기");
     console.log("blogSelection:", blogSelection);
@@ -2297,6 +2303,7 @@ function getCurrentSettings() {
     
 
     return {
+        blogExist,
         blogSelection: settings.blogSelection || "",
         blogUrl: settings.blogUrl || "",
         username: settings.username || "",
@@ -2388,6 +2395,7 @@ function setCurrentSettings(settingsData) {
     renderKeywords();
 
     // 블로그 및 주제 관련 설정
+    document.querySelector(`input[name="blogToggle"][value="${settingsData.blogUrl}"]`)?.click();
     document.querySelector(`input[name="blogToggle"][value="${settingsData.blogSelection}"]`)?.click();
     document.querySelector(`input[name="topicToggle"][value="${settingsData.topicSelection}"]`)?.click();
     document.getElementById("topicInput").value = settingsData.manualTopic || "";
@@ -2470,38 +2478,43 @@ function setCurrentSettings(settingsData) {
 async function generatePost() {
     const settings = getCurrentSettings();
 
-    if (!settings.blogSelection) {
+    if (!settings.blogExist) {
         alert("블로그를 선택하세요.");
         return;
     }
 
-    // 데이터 검증
     if (!settings.title || !settings.customPrompt) {
         console.error("프롬프트 데이터 누락:", { title: settings.title, customPrompt: settings.customPrompt });
         alert("프롬프트 제목 또는 내용이 누락되었습니다.");
         return;
     }
 
-
-    console.log("생성 요청에 전달될 데이터:", {
-        userId: auth.currentUser?.uid,
-        settings,
-        keywords: settings.keywords || [],
-    });
-
     if (!settings.topicSelection) {
         alert("주제 선택이 필요합니다.");
         return;
     }
 
+    const generateButton = document.getElementById("generateButton");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+
     try {
+        // 버튼 텍스트 변경 및 로딩 아이콘 표시
+        generateButton.disabled = true;
+        generateButton.textContent = "작업중...";
+        loadingOverlay.style.display = "flex";
+
+        // 2초 후 docs 화면으로 이동
+        setTimeout(() => {
+            router("/docs");
+        }, 2000);
+
         const response = await fetch('https://www.dokdolove.com/api/generate-post', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userId: auth.currentUser?.uid, // 사용자 ID
+                userId: auth.currentUser?.uid,
                 settings,
-                keywords: settings.keywords || [], // 키워드 목록
+                keywords: settings.keywords || [],
             }),
         });
 
@@ -2512,12 +2525,18 @@ async function generatePost() {
 
         const result = await response.json();
         console.log('작업 생성 성공:', result);
-        alert('포스팅 작업이 시작되었습니다.');
+
     } catch (error) {
         console.error('생성 작업 오류:', error);
-        alert('작업 생성 중 오류가 발생했습니다.');
+    } finally {
+        // 작업 완료 후 버튼 및 로딩 아이콘 복구
+        generateButton.disabled = false;
+        generateButton.textContent = "생성하기";
+        loadingOverlay.style.display = "none";
     }
 }
+
+
 
 
 
@@ -2531,28 +2550,162 @@ async function generatePost() {
 ///////////////////////////////////////////////////////////////////////////////////
 //나의 문서 코드
 
+let currentEditPostId = null;
 
-async function loadPostHistory(userId) {
+// 문자열 안전 처리
+function sanitizeString(str) {
+    return str.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ");
+}
+
+// 모달 열기 (조회용)
+function openModal(title, content) {
+    const modalTitle = document.getElementById("modalTitle");
+    const modalContent = document.getElementById("modalContent");
+    const postModal = document.getElementById("postModal");
+
+    if (modalTitle && modalContent && postModal) {
+        modalTitle.textContent = title;
+        modalContent.innerHTML = content.replace(/\n/g, "<br>"); // 줄바꿈 유지
+        postModal.style.display = "flex";
+
+        // 닫기 버튼 이벤트 등록
+        const closeModalBtn = document.getElementById("closeModal");
+        closeModalBtn.addEventListener("click", closeModal, { once: true });
+         // 복사 기능 리스너 추가
+        document.getElementById("copyContent").onclick = () => copyToClipboard(title, content);
+    }
+}
+
+// 복사 기능
+function copyToClipboard(title, content) {
+    const fullContent = `제목: ${title}\n\n${content}`;
+    navigator.clipboard.writeText(fullContent)
+        .then(() => alert("글이 복사되었습니다."))
+        .catch((err) => console.error("복사 실패:", err));
+}
+
+// 모달 닫기
+function closeModal() {
+    document.getElementById("postModal").style.display = "none";
+}
+
+// 수정 모달 열기
+function openEditModal(postId, title, content) {
+    currentEditPostId = postId;
+
+    const editTitleInput = document.getElementById("editTitleInput");
+    const editContentInput = document.getElementById("editContentInput");
+    const editModal = document.getElementById("editModal");
+
+    if (editTitleInput && editContentInput && editModal) {
+        editTitleInput.value = title;
+        editContentInput.value = content;
+        editModal.style.display = "flex";
+
+        // 저장 및 닫기 버튼 이벤트 등록
+        const saveButton = document.getElementById("saveEditButton");
+        const closeEditButton = document.getElementById("closeEditModal");
+
+        saveButton.addEventListener("click", saveEditPost, { once: true });
+        closeEditButton.addEventListener("click", closeEditModal, { once: true });
+    }
+}
+
+// 수정 모달 닫기
+function closeEditModal() {
+    currentEditPostId = null;
+    document.getElementById("editModal").style.display = "none";
+}
+
+// 포스팅 수정 저장
+async function saveEditPost() {
+    const userId = auth.currentUser?.uid;
+    if (!userId || !currentEditPostId) return;
+
+    const newTitle = document.getElementById("editTitleInput").value.trim();
+    const newContent = document.getElementById("editContentInput").value.trim();
+
+    if (newTitle && newContent) {
+        try {
+            await db.collection("postHistory").doc(userId).collection("posts").doc(currentEditPostId).update({
+                title: newTitle,
+                content: newContent,
+            });
+
+            alert("포스팅이 수정되었습니다.");
+            closeEditModal();
+            loadPostHistory();
+        } catch (error) {
+            console.error("포스팅 수정 중 오류:", error);
+        }
+    } else {
+        alert("제목과 내용을 모두 입력하세요.");
+    }
+}
+
+// 포스팅 목록 불러오기
+async function loadPostHistory() {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
     try {
         const historyRef = db.collection("postHistory").doc(userId).collection("posts").orderBy("timestamp", "desc");
         const snapshot = await historyRef.get();
 
         const historyContainer = document.getElementById("postHistoryContainer");
-        historyContainer.innerHTML = ""; // 기존 내용 초기화
+        if (!historyContainer) return;
+
+        historyContainer.innerHTML = "";
+
+        if (snapshot.empty) {
+            historyContainer.innerHTML = "<p>작업 내역이 없습니다.</p>";
+            return;
+        }
 
         snapshot.forEach((doc) => {
             const data = doc.data();
+
             const postElement = document.createElement("div");
             postElement.classList.add("post-item");
 
             postElement.innerHTML = `
-                <h3>${data.title}</h3>
-                <p>${data.content.substring(0, 100)}...</p>
-                <small>${new Date(data.timestamp.seconds * 1000).toLocaleString()}</small>
-                <button onclick="editPost('${doc.id}')">수정</button>
-                <button onclick="deletePost('${doc.id}')">삭제</button>
-                <span class="status">${data.status || "포스팅 완료"}</span>
+                
+                <div class="line">
+                    <div class="left">
+                        <div class="post-time">${new Date(data.timestamp.seconds * 1000).toLocaleString()}</div>
+                        <div class="status">${data.status || "완료"}</div>
+                    </div>
+                    <div class="task-type">${data.type || "단일"}</div>
+                </div>
+                <div class="line">
+                    <p class="title">타이틀: ${data.title}</p>
+                    <button class="edit">편집</button>
+                </div>
+                <div class="line">
+                    <p class="content">내용: ${data.content.substring(0, 100)}...</p>
+                    <button class="delete">삭제</button>
+                </div>
             `;
+
+            // 이벤트 리스너 추가
+            postElement.addEventListener("click", (e) => {
+                if (!e.target.classList.contains("edit") && !e.target.classList.contains("delete")) {
+                    openModal(data.title, data.content);
+                }
+            });
+
+            postElement.querySelector(".edit").addEventListener("click", (e) => {
+                e.stopPropagation();
+                openEditModal(doc.id, data.title, data.content);
+            });
+
+            postElement.querySelector(".delete").addEventListener("click", async (e) => {
+                e.stopPropagation();
+                if (confirm("정말 삭제하시겠습니까?")) {
+                    await deletePost(doc.id);
+                }
+            });
+
             historyContainer.appendChild(postElement);
         });
     } catch (error) {
@@ -2560,24 +2713,26 @@ async function loadPostHistory(userId) {
     }
 }
 
-// 포스팅 수정
-async function editPost(postId) {
-    const newContent = prompt("수정할 내용을 입력하세요:");
-    if (newContent !== null) {
-        await db.collection("postHistory").doc(userId).collection("posts").doc(postId).update({
-            content: newContent,
-        });
-        alert("포스팅 내용이 수정되었습니다.");
-        loadPostHistory(userId);
+// 삭제 함수
+async function deletePost(postId) {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    try {
+        await db.collection("postHistory").doc(userId).collection("posts").doc(postId).delete();
+        alert("포스팅이 삭제되었습니다.");
+        loadPostHistory();
+    } catch (error) {
+        console.error("포스팅 삭제 중 오류:", error);
     }
 }
 
-// 포스팅 삭제
-async function deletePost(postId) {
-    await db.collection("postHistory").doc(userId).collection("posts").doc(postId).delete();
-    alert("포스팅이 삭제되었습니다.");
-    loadPostHistory(userId);
-}
+
+
+
+
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////

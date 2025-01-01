@@ -21,6 +21,9 @@
             <input type="text" id="settingsNameInput" placeholder="설정 이름 입력">
             <button id="saveButton" onclick="saveCurrentSettings()">저장</button>
             <button id="generateButton" onclick="generatePost()">생성하기</button>
+            <div id="loadingOverlay" style="display: none;">
+                <div class="loading-spinner"></div>
+            </div>
         </div>
 
         <!-- 1. 나의 블로그 선택 -->
@@ -55,7 +58,7 @@
             <div class="topic-option">
                 <span>실시간 키워드 채택</span>
                 <label class="toggle-label">
-                    <input type="radio" name="topicToggle" value="autoTrending"
+                    <input type="radio" name="topicToggle" value="realTimeKeyword"
                         onchange="handleTopicToggleChange(this)">
                     <span class="toggle-switch"></span>
                 </label>
